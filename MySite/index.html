@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Book Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #050505; --card: #121214; --card-hover: #1a1a1e; --text: #ffffff; --text-muted: #888892;
+      --primary: #7c3aed; --primary-hover: #6d28d9; --accent: #c084fc; --danger: #ef4444;
+      --border: #27272a; --shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      margin: 0; padding: 0; background: var(--bg); color: var(--text); line-height: 1.5; 
+      -webkit-font-smoothing: antialiased; background-image: radial-gradient(circle at top right, rgba(124, 58, 237, 0.1), transparent 40%);
+    }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 60px; }
+    
+    /* Шапка профиля */
+    .profile-header { display: flex; align-items: center; gap: 16px; padding: 20px 0 24px 0; }
+    .avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; text-transform: uppercase; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4); cursor: pointer; position: relative; }
+    .avatar:hover::after { content: '✏️'; position: absolute; bottom: -2px; right: -2px; font-size: 14px; background: #000; border-radius: 50%; padding: 2px; border: 1px solid var(--border); }
+    .profile-info h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .profile-info h1:hover { color: var(--accent); }
+    .profile-info h1 span { font-size: 14px; color: var(--text-muted); }
+    .profile-stats { display: flex; gap: 12px; font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .profile-stats span { display: flex; align-items: center; gap: 4px; }
+    
+    .card { background: var(--card); border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    input, select, textarea { width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; outline: none; transition: all 0.2s; margin-bottom: 16px; background: #000; color: var(--text); font-family: inherit; }
+    input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2); }
+    
+    .file-upload { display: block; width: 100%; padding: 14px; border: 2px dashed var(--border); border-radius: 12px; text-align: center; cursor: pointer; color: var(--text-muted); transition: 0.2s; margin-bottom: 16px; font-size: 14px; }
+    .file-upload:hover { border-color: var(--primary); color: var(--primary); }
+    .file-upload input[type="file"] { display: none; }
+    
+    .btn { display: inline-flex; justify-content: center; align-items: center; padding: 14px 20px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; margin-bottom: 12px; }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #27272a; color: var(--text); }
+    .btn-secondary:hover { background: #3f3f46; }
+    .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .btn-small { width: auto; padding: 10px 16px; font-size: 14px; margin: 0; border-radius: 10px; }
+    
+    .book-item { display: flex; gap: 16px; padding: 16px; background: var(--card); border-radius: 16px; margin-bottom: 12px; align-items: center; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
+    .book-item:hover { background: var(--card-hover); transform: translateY(-2px); }
+    .book-cover { width: 70px; height: 105px; border-radius: 8px; object-fit: cover; background: #27272a; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    .book-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .book-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; line-height: 1.3; }
+    .book-author { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+    
+    .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #27272a; color: #d4d4d8; width: fit-content; }
+    .badge-read { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge-finished { background: rgba(124, 58, 237, 0.15); color: #c084fc; }
+    
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); display: flex; justify-content: center; align-items: flex-end; z-index: 100; }
+    .modal-content { background: #0f0f11; width: 100%; max-width: 600px; max-height: 92vh; border-radius: 24px 24px 0 0; padding: 24px; overflow-y: auto; position: relative; animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); border-top: 1px solid var(--border); }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-close { position: absolute; top: 20px; right: 20px; background: #27272a; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); z-index: 10; transition: 0.2s; }
+    .modal-close:hover { background: var(--danger); }
+    
+    .chat-container { background: var(--card); border-radius: 16px; padding: 20px; margin-top: 24px; border: 1px solid var(--border); }
+    .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 12px; scrollbar-width: none; }
+    .chapter-tabs::-webkit-scrollbar { display: none; }
+    .chapter-tab { white-space: nowrap; padding: 8px 16px; border-radius: 20px; background: #27272a; color: var(--text-muted); font-size: 14px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+    .chapter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+    
+    #chat-area { max-height: 300px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .msg { background: #1a1a1e; padding: 12px 16px; border-radius: 16px; border-bottom-left-radius: 4px; align-self: flex-start; max-width: 90%; font-size: 15px; border: 1px solid var(--border); }
+    .msg-meta { font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-weight: 600; }
+    .msg-actions button { background: none; border: none; cursor: pointer; font-size: 13px; padding: 0 6px; opacity: 0.5; color: var(--text); }
+    .spoiler { background: #3f3f46; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; }
+    .spoiler.revealed { background: transparent; color: inherit; }
+    .hidden { display: none !important; }
+    .flex-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .text-center { text-align: center; }
+    .error-text { color: var(--danger); font-size: 14px; margin-top: 8px; font-weight: 500; }
+    
+    @media (min-width: 600px) { .modal { align-items: center; } .modal-content { border-radius: 24px; border: 1px solid var(--border); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Шапка профиля -->
+    <div id="profile-header" class="profile-header hidden">
+      <div class="avatar" id="user-avatar" onclick="changeName()">U</div>
+      <div class="profile-info">
+        <h1 id="user-name" onclick="changeName()">User <span>✏️</span></h1>
+        <div class="profile-stats">
+          <span>📌 <span id="stat-want">0</span></span>
+          <span>📖 <span id="stat-read">0</span></span>
+          <span>✅ <span id="stat-fin">0</span></span>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-small" style="margin-left: auto;" onclick="signOut()">Выйти</button>
+    </div>
+
+    <!-- Авторизация -->
+    <div id="auth-section" class="card">
+      <h2 class="text-center" style="margin-top:0; font-weight: 800; font-size: 28px;">С возвращением</h2>
+      <p class="text-center" style="color:var(--text-muted); font-size:15px; margin-bottom:24px;">Войдите по ID или создайте новый</p>
+      <input id="login-id" placeholder="Ваш ID (логин)" />
+      <input id="login-password" type="password" placeholder="Пароль (мин. 6 символов)" />
+      <button class="btn btn-primary" onclick="signIn()">Войти</button>
+      <button class="btn btn-secondary" onclick="signUp()">Создать аккаунт</button>
+      <p id="auth-msg" class="error-text text-center"></p>
+    </div>
+
+    <!-- Основной интерфейс -->
+    <div id="main-section" class="hidden">
+      
+      <!-- Рандомайзер -->
+      <div class="card" style="display:flex; justify-content:space-between; align-items:center; background: linear-gradient(to right, #121214, #1a1a1e); border-color: #3f3f46;">
+        <div>
+          <h3 style="margin:0 0 4px 0; font-size:16px; font-weight:800;">Что почитать?</h3>
+          <p style="margin:0; font-size:13px; color:var(--text-muted);">Случайная книга из списка "Хочу"</p>
+        </div>
+        <button class="btn btn-primary btn-small" style="padding: 12px 20px;" onclick="randomizeBook(this)">🎲 Крутить</button>
+      </div>
+
+      <!-- Ручное добавление -->
+      <div class="card">
+        <h3 style="margin-top:0; font-size: 18px;">➕ Добавить книгу</h3>
+        <input id="add-title" placeholder="Название книги" />
+        <input id="add-author" placeholder="Автор" />
+        
+        <label class="file-upload" id="file-label">
+          <span id="file-text">📸 Выбрать обложку с устройства</span>
+          <input type="file" id="add-cover-file" accept="image/*" onchange="updateFileName(this)" />
+        </label>
+
+        <button class="btn btn-primary" onclick="addBookManually()">Добавить в библиотеку</button>
+      </div>
+
+      <!-- Библиотека -->
+      <div class="card" style="margin-top:20px;">
+        <h3 style="margin-top:0; font-size: 18px;">📖 Библиотека</h3>
+        <div id="all-books"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка книги -->
+  <div id="book-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://urfleyxdtffzbznvqzqr.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'sb_publishable_uBtzu9m4mdmxT1f946_G2g_FpWwi31t'; 
+    const FAKE_DOMAIN = 'book-tracker.local';
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+    let currentUserName = '';
+    let currentBookId = null;
+    let currentChapter = 'Общий чат';
+    let currentChannel = null;
+    let selectedFile = null;
+
+    function isValidLogin(login) { return /^[a-zA-Z0-9_-]{3,30}$/.test(login); }
+    function loginToEmail(login) { return login + '@' + FAKE_DOMAIN; }
+    function emailToLogin(email) { return email?.endsWith('@' + FAKE_DOMAIN) ? email.slice(0, -(FAKE_DOMAIN.length + 1)) : email; }
+
+    function formatTime(isoString) {
+      if (!isoString) return '';
+      const date = new Date(isoString);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // --- СМЕНА ИМЕНИ ---
+    async function changeName() {
+      const newName = prompt('Введите новое имя (оно сохранится навсегда и будет видно всем в чатах):', currentUserName);
+      if (newName === null) return;
+      const trimmed = newName.trim();
+      if (!trimmed) return alert('Имя не может быть пустым');
+      
+      const { data, error } = await sb.auth.updateUser({
+        data: { display_name: trimmed }
+      });
+
+      if (error) return alert('Ошибка сохранения: ' + error.message);
+
+      currentUserName = trimmed;
+      document.getElementById('user-name').innerHTML = `${escapeHtml(trimmed)} <span>✏️</span>`;
+      document.getElementById('user-avatar').textContent = trimmed.charAt(0);
+      
+      loadMessages(currentBookId, currentChapter);
+    }
+
+    // --- ЗАГРУЗКА ФАЙЛА ---
+    function updateFileName(input) {
+      const label = document.getElementById('file-text');
+      const labelBox = document.getElementById('file-label');
+      if (input.files && input.files[0]) {
+        selectedFile = input.files[0];
+        label.textContent = '✅ ' + selectedFile.name;
+        labelBox.style.borderColor = '#7c3aed';
+        labelBox.style.color = '#c084fc';
+      } else {
+        selectedFile = null;
+        label.textContent = '📸 Выбрать обложку с устройства';
+        labelBox.style.borderColor = 'var(--border)';
+        labelBox.style.color = 'var(--text-muted)';
+      }
+    }
+
+    async function uploadCover(file) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      const { data, error } = await sb.storage.from('covers').upload(fileName, file);
+      if (error) throw error;
+      
+      const { data: urlData } = sb.storage.from('covers').getPublicUrl(fileName);
+      return urlData.publicUrl;
+    }
+
+    // --- АВТОРИЗАЦИЯ ---
+    async function signUp() {
+      const login = document.getElementById('login-id').value.trim();
+      const password = document.getElementById('login-password').value;
+      const msg = document.getElementById('auth-msg');
+      if (login.toLowerCase() === 'admin') { msg.textContent = 'Этот логин занят.'; return; }
+      if (!isValidLogin(login)) { msg.textContent = 'ID: 3–30 символов (латиница, цифры, _, -)'; return; }
+      if (password.length < 6) { msg.textContent = 'Пароль от 6 символов'; return; }
+      
+      const { error } = await sb.auth.signUp({ 
+        email: loginToEmail(login), 
+        password,
+        options: { data: { display_name: login } }
+      });
+      
+      if (error) { msg.textContent = error.message; return; }
+      msg.style.color = '#34d399'; msg.textContent = 'Успех! Заходим...';
+      setTimeout(checkSession, 800);
+    }
+
+    async function signIn() {
+      const login = document.getElementById('login-id').value.trim();
+      const password = document.getElementById('login-password').value;
+      const msg = document.getElementById('auth-msg');
+      
+      if (login.toLowerCase() === 'admin') {
+        const { error } = await sb.auth.signInWithPassword({ email: loginToEmail('admin'), password });
+        if (error) { msg.textContent = 'Неверный пароль админа.'; return; }
+        msg.textContent = ''; checkSession(); return;
+      }
+
+      if (!isValidLogin(login)) { msg.textContent = 'Некорректный ID'; return; }
+      const { error } = await sb.auth.signInWithPassword({ email: loginToEmail(login), password });
+      if (error) { msg.textContent = 'Неверный ID или пароль'; return; }
+      msg.textContent = ''; checkSession();
+    }
+
+    async function signOut() {
+      if (currentChannel) sb.removeChannel(currentChannel);
+      await sb.auth.signOut();
+      checkSession();
+    }
+
+    async function checkSession() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) {
+        currentUser = session.user;
+        currentUserName = currentUser.user_metadata?.display_name || emailToLogin(currentUser.email);
+
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('main-section').classList.remove('hidden');
+        document.getElementById('profile-header').classList.remove('hidden');
+        
+        document.getElementById('user-name').innerHTML = `${escapeHtml(currentUserName)} <span>✏️</span>`;
+        document.getElementById('user-avatar').textContent = currentUserName.charAt(0);
+
+        loadAllBooks();
+      } else {
+        currentUser = null;
+        currentUserName = '';
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('main-section').classList.add('hidden');
+        document.getElementById('profile-header').classList.add('hidden');
+      }
+    }
+
+    function isAdmin() {
+      return emailToLogin(currentUser?.email) === 'admin';
+    }
+
+    // --- РУЧНОЕ ДОБАВЛЕНИЕ ---
+    async function addBookManually() {
+      const title = document.getElementById('add-title').value.trim();
+      const author = document.getElementById('add-author').value.trim();
+      if (!title) return alert('Введите название книги');
+
+      const btn = document.querySelector('button[onclick="addBookManually()"]');
+      const oldText = btn.textContent;
+      btn.textContent = 'Сохраняем...'; btn.disabled = true;
+
+      try {
+        let coverUrl = '';
+        if (selectedFile) {
+          coverUrl = await uploadCover(selectedFile);
+        }
+
+        const google_id = 'manual_' + Date.now(); 
+
+        const { data, error } = await sb.from('books').insert({
+          google_id: google_id,
+          title: title,
+          authors: author || 'Автор неизвестен',
+          thumbnail: coverUrl,
+          description: ''
+        }).select('id').single();
+
+        if (error) throw error;
+
+        await sb.from('user_books').upsert({
+          user_id: currentUser.id, book_id: data.id, status: 'want_to_read'
+        }, { onConflict: 'user_id,book_id', ignoreDuplicates: true });
+
+        document.getElementById('add-title').value = '';
+        document.getElementById('add-author').value = '';
+        document.getElementById('add-cover-file').value = '';
+        updateFileName(document.getElementById('add-cover-file'));
+        
+        loadAllBooks();
+      } catch (err) {
+        alert('Ошибка: ' + err.message);
+      } finally {
+        btn.textContent = oldText; btn.disabled = false;
+      }
+    }
+
+    // --- РАНДОМАЙЗЕР ---
+    async function randomizeBook(btn) {
+      const { data: myBooks, error } = await sb.from('user_books').select('book_id').eq('user_id', currentUser.id).eq('status', 'want_to_read');
+      
+      if (error) return alert('Ошибка базы: ' + error.message);
+      if (!myBooks || myBooks.length === 0) {
+        return alert('В списке "Хочу почитать" пока пусто. Добавь книги!');
+      }
+
+      const randomIndex = Math.floor(Math.random() * myBooks.length);
+      const randomBookId = myBooks[randomIndex].book_id;
+
+      const oldText = btn.textContent;
+      btn.textContent = '🎲 Ищем...'; 
+      btn.disabled = true;
+      
+      setTimeout(() => {
+        openBook(randomBookId);
+        btn.textContent = oldText; 
+        btn.disabled = false;
+      }, 600);
+    }
+
+    // --- ЗАГРУЗКА БИБЛИОТЕКИ ---
+    async function loadAllBooks() {
+      const { data: books } = await sb.from('books').select('*').order('created_at', { ascending: false });
+      if (!books) return;
+      
+      const { data: userBooks } = await sb.from('user_books').select('*').eq('user_id', currentUser.id);
+      const userMap = {};
+      (userBooks || []).forEach(ub => { userMap[ub.book_id] = ub; });
+
+      let want = 0, read = 0, fin = 0;
+      (userBooks || []).forEach(ub => {
+        if (ub.status === 'want_to_read') want++;
+        if (ub.status === 'reading') read++;
+        if (ub.status === 'finished') fin++;
+      });
+      document.getElementById('stat-want').textContent = want;
+      document.getElementById('stat-read').textContent = read;
+      document.getElementById('stat-fin').textContent = fin;
+
+      const container = document.getElementById('all-books');
+      if (books.length === 0) { 
+        container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 20px 0;">Тут пока пусто. Добавь первую книгу!</p>'; 
+        return; 
+      }
+
+      container.innerHTML = books.map(book => {
+        const ub = userMap[book.id];
+        const status = ub?.status || null;
+        const rating = ub?.rating ? ' ' + '★'.repeat(ub.rating) : '';
+        
+        let statusHtml = '<span class="badge">Не в списке</span>';
+        if (status === 'reading') statusHtml = '<span class="badge badge-read">📖 Читаю</span>';
+        if (status === 'finished') statusHtml = '<span class="badge badge-finished">✅ Прочитано</span>';
+        if (status === 'want_to_read') statusHtml = '<span class="badge">📌 Хочу</span>';
+        
+        return `
+          <div class="book-item" onclick="openBook(${book.id})">
+            ${book.thumbnail ? `<img src="${book.thumbnail}" class="book-cover" onerror="this.style.display='none';">` : `<div class="book-cover" style="display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:10px; text-align:center;">Нет обложки</div>`}
+            <div class="book-info">
+              <div><div class="book-title">${escapeHtml(book.title)}</div><div class="book-author">${escapeHtml(book.authors || '')}</div></div>
+              <div class="flex-row">${statusHtml} <span style="color:#fbbf24; font-size:14px; font-weight:600;">${rating}</span></div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // --- МОДАЛКА КНИГИ ---
+    async function openBook(bookId) {
+      currentBookId = bookId;
+      currentChapter = 'Общий чат';
+      document.getElementById('book-modal').classList.remove('hidden');
+      document.getElementById('modal-content').innerHTML = '<p style="text-align:center; color:var(--text-muted);">Загрузка...</p>';
+
+      const { data: book } = await sb.from('books').select('*').eq('id', bookId).single();
+      const { data: ub } = await sb.from('user_books').select('*').eq('user_id', currentUser.id).eq('book_id', bookId).maybeSingle();
+      
+      const status = ub?.status || null;
+      const rating = ub?.rating || 0;
+      
+      const adminBtn = isAdmin() ? `<button class="btn btn-danger btn-small" onclick="clearChat()">🗑 Очистить</button>` : '';
+      const deleteBookBtn = isAdmin() ? `<button class="btn btn-danger btn-small" style="margin-top:8px;" onclick="deleteBook()">Удалить книгу</button>` : '';
+
+      let actionBlock = '';
+      if (!status) {
+        actionBlock = `<button class="btn btn-primary" onclick="addToMyList(${book.id})">+ Добавить в мой список</button>`;
+      } else {
+        actionBlock = `
+          <div class="card" style="padding:16px; margin-bottom:20px; background:#1a1a1e; box-shadow:none;">
+            <label style="font-weight:600; font-size:13px; margin-bottom:8px; display:block; color:var(--text-muted); text-transform:uppercase;">Статус</label>
+            <select id="status-select" onchange="updateStatus()" style="margin-bottom:16px; border:none; background:#000;">
+              <option value="want_to_read" ${status === 'want_to_read' ? 'selected' : ''}>📌 Хочу прочитать</option>
+              <option value="reading" ${status === 'reading' ? 'selected' : ''}>📖 Читаю</option>
+              <option value="paused" ${status === 'paused' ? 'selected' : ''}>⏸ На паузе</option>
+              <option value="dropped" ${status === 'dropped' ? 'selected' : ''}>🚫 Брошено</option>
+              <option value="finished" ${status === 'finished' ? 'selected' : ''}>✅ Завершено</option>
+            </select>
+            <label style="font-weight:600; font-size:13px; margin-bottom:8px; display:block; color:var(--text-muted); text-transform:uppercase;">Оценка</label>
+            <select id="rating-select" onchange="updateRating()" style="margin-bottom:0; border:none; background:#000;">
+              <option value="0">Без оценки</option>
+              ${[1,2,3,4,5].map(n => `<option value="${n}" ${rating === n ? 'selected' : ''}>${'★'.repeat(n)}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      }
+
+      document.getElementById('modal-content').innerHTML = `
+        <div style="display:flex; gap:20px; margin-bottom:24px;">
+          ${book.thumbnail ? `<img src="${book.thumbnail}" style="width:100px; height:150px; border-radius:12px; object-fit:cover; box-shadow:0 8px 24px rgba(0,0,0,0.5);" onerror="this.style.display='none'">` : `<div style="width:100px; height:150px; border-radius:12px; background:#27272a; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:12px;">Нет обложки</div>`}
+          <div style="flex:1;">
+            <h2 style="margin:0 0 8px 0; font-size:22px; line-height:1.2; font-weight:800;">${escapeHtml(book.title)}</h2>
+            <div style="color:var(--text-muted); font-size:15px; margin-bottom:12px;">${escapeHtml(book.authors || '')}</div>
+            ${deleteBookBtn}
+          </div>
+        </div>
+
+        ${actionBlock}
+
+        <div class="chat-container">
+          <div class="flex-row" style="justify-content: space-between; margin-bottom:16px;">
+            <h3 style="margin:0; font-size:18px; font-weight:700;">💬 Обсуждение</h3>
+            ${adminBtn}
+          </div>
+          
+          <div class="flex-row" style="margin-bottom:16px;">
+            <input id="new-chapter-input" placeholder="Название главы..." style="margin-bottom:0; flex:1; padding:10px 14px; font-size:14px;" />
+            <button class="btn btn-secondary btn-small" onclick="addChapter()">+ Глава</button>
+          </div>
+
+          <div class="chapter-tabs" id="chapter-tabs"></div>
+          <div id="chat-area"></div>
+          
+          <div class="search-box" style="margin-bottom:0; margin-top:12px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; padding: 0 4px;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-muted); cursor:pointer;">
+                <input type="checkbox" id="spoiler-check" style="width:auto; margin:0; accent-color: var(--primary);" /> Отправить под спойлером
+              </label>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <input id="chat-input" placeholder="Написать..." style="margin-bottom:0; padding:12px 16px;" onkeydown="if(event.key==='Enter')sendMessage()" />
+              <button class="btn btn-primary" style="width:auto; margin:0; padding: 0 20px;" onclick="sendMessage()">➤</button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      await loadChapters();
+      setupChat(bookId, currentChapter);
+    }
+
+    async function addToMyList(bookId) {
+      await sb.from('user_books').upsert({
+        user_id: currentUser.id, book_id: bookId, status: 'want_to_read'
+      }, { onConflict: 'user_id,book_id' });
+      loadAllBooks();
+      openBook(bookId); 
+    }
+
+    // --- ГЛАВЫ ---
+    async function loadChapters() {
+      const { data: msgs } = await sb.from('messages').select('chapter').eq('book_id', currentBookId).not('chapter', 'is', null);
+      const chapters = new Set(['Общий чат']);
+      (msgs || []).forEach(m => { if (m.chapter) chapters.add(m.chapter); });
+
+      const tabsContainer = document.getElementById('chapter-tabs');
+      tabsContainer.innerHTML = Array.from(chapters).map(chap => `
+        <div class="chapter-tab ${chap === currentChapter ? 'active' : ''}" onclick="switchChapter('${escapeHtml(chap).replace(/'/g, "\\'")}')">
+          ${escapeHtml(chap)}
+        </div>
+      `).join('');
+    }
+
+    async function addChapter() {
+      const chapName = document.getElementById('new-chapter-input').value.trim();
+      if (!chapName) return;
+      
+      await sb.from('messages').insert({
+        book_id: currentBookId,
+        user_id: currentUser.id,
+        user_email: currentUserName,
+        chapter: chapName,
+        content: `Создана глава "${chapName}"`,
+        is_spoiler: false
+      });
+
+      document.getElementById('new-chapter-input').value = '';
+      await loadChapters();
+      switchChapter(chapName);
+    }
+
+    async function switchChapter(chapName) {
+      currentChapter = chapName;
+      await loadChapters();
+      setupChat(currentBookId, chapName);
+    }
+
+    // --- СТАТУСЫ И ОЦЕНКИ ---
+    async function updateStatus() {
+      const newStatus = document.getElementById('status-select').value;
+      const startedAt = newStatus === 'reading' ? new Date().toISOString().slice(0, 10) : null;
+      const finishedAt = newStatus === 'finished' ? new Date().toISOString().slice(0, 10) : null;
+      await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: currentBookId, status: newStatus, started_at: startedAt, finished_at: finishedAt }, { onConflict: 'user_id,book_id' });
+      loadAllBooks();
+    }
+
+    async function updateRating() {
+      const rating = parseInt(document.getElementById('rating-select').value);
+      await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: currentBookId, rating: rating || null }, { onConflict: 'user_id,book_id' });
+      loadAllBooks();
+    }
+
+    async function deleteBook() {
+      if (!isAdmin()) return;
+      if (!confirm('Удалить книгу из общей базы? Это удалит её у всех пользователей.')) return;
+      await sb.from('books').delete().eq('id', currentBookId);
+      closeModal();
+      loadAllBooks();
+    }
+
+    // --- ЧАТ ---
+    function setupChat(bookId, chapterName) {
+      if (currentChannel) sb.removeChannel(currentChannel);
+      loadMessages(bookId, chapterName);
+      
+      currentChannel = sb.channel(`book-chat-${bookId}-${chapterName}`)
+        .on('postgres_changes', { 
+          event: '*', schema: 'public', table: 'messages', 
+          filter: `book_id=eq.${bookId}` 
+        }, payload => {
+          const msg = payload.new || payload.old;
+          if (msg.chapter !== chapterName) return;
+
+          if (payload.eventType === 'INSERT') appendMessage(payload.new);
+          else if (payload.eventType === 'UPDATE') updateMessageInDom(payload.new);
+          else if (payload.eventType === 'DELETE') {
+            removeMessageFromDom(payload.old.id);
+            loadMessages(bookId, chapterName); 
+          }
+        }).subscribe();
+    }
+
+    async function loadMessages(bookId, chapterName) {
+      if (!bookId) return;
+      const { data } = await sb.from('messages').select('*')
+        .eq('book_id', bookId).eq('chapter', chapterName)
+        .order('created_at', { ascending: true });
+      
+      const area = document.getElementById('chat-area');
+      if (!area) return;
+      area.innerHTML = '';
+      
+      if (!data || data.length === 0) {
+        area.innerHTML = '<p style="color:var(--text-muted); text-align:center; font-size:14px; margin: 10px 0;">Тут пока тихо...</p>';
+      } else {
+        data.forEach(appendMessage);
+      }
+    }
+
+    function messageHtml(msg) {
+      const isMe = msg.user_id === currentUser.id;
+      const displayName = isMe ? currentUserName : (msg.user_email || 'anon');
+      const timeStr = msg.created_at ? formatTime(msg.created_at) : '';
+      
+      const content = msg.is_spoiler ? `<span class="spoiler" onclick="this.classList.toggle('revealed')">${escapeHtml(msg.content)}</span>` : escapeHtml(msg.content);
+      const canDelete = isAdmin() || msg.user_id === currentUser.id;
+      const actionBtns = canDelete 
+        ? `<button onclick="editMessage(${msg.id}, '${escapeHtml(msg.content).replace(/'/g, "\\'")}')">✏️</button><button onclick="deleteMessage(${msg.id})">🗑</button>` 
+        : '';
+      return `
+        <div class="msg-meta">
+          <span>${escapeHtml(displayName)} <span style="opacity: 0.6; font-weight: normal; font-size: 11px;">${timeStr}</span></span>
+          <span class="msg-actions">${actionBtns}</span>
+        </div>
+        <div>${content}</div>`;
+    }
+
+    function appendMessage(msg) {
+      const area = document.getElementById('chat-area');
+      if (!area) return;
+      const placeholder = area.querySelector('p');
+      if (placeholder) placeholder.remove();
+      const div = document.createElement('div'); 
+      div.className = 'msg'; div.id = `msg-${msg.id}`; div.innerHTML = messageHtml(msg);
+      area.appendChild(div); area.scrollTop = area.scrollHeight;
+    }
+    
+    function updateMessageInDom(msg) { const div = document.getElementById(`msg-${msg.id}`); if (div) div.innerHTML = messageHtml(msg); }
+    function removeMessageFromDom(id) { const div = document.getElementById(`msg-${id}`); if (div) div.remove(); }
+
+    async function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const content = input.value.trim();
+      if (!content || !currentBookId) return;
+      
+      const isSpoiler = document.getElementById('spoiler-check')?.checked || false;
+
+      const { error } = await sb.from('messages').insert({ 
+        book_id: currentBookId, user_id: currentUser.id, user_email: currentUserName,
+        chapter: currentChapter, content: content, is_spoiler: isSpoiler
+      });
+      if (error) alert(error.message);
+      
+      input.value = ''; 
+      if(document.getElementById('spoiler-check')) document.getElementById('spoiler-check').checked = false;
+    }
+
+    async function editMessage(id, oldContent) {
+      const newContent = prompt('Изменить:', oldContent);
+      if (newContent === null) return;
+      const trimmed = newContent.trim(); if (!trimmed) return;
+      await sb.from('messages').update({ content: trimmed }).eq('id', id);
+    }
+    
+    async function deleteMessage(id) { 
+      if (confirm('Удалить это сообщение?')) {
+        await sb.from('messages').delete().eq('id', id);
+        removeMessageFromDom(id);
+        loadMessages(currentBookId, currentChapter);
+      }
+    }
+
+    async function clearChat() {
+      if (!isAdmin()) return alert('Только админ может очищать чат.');
+      if (!confirm(`Удалить ВСЕ сообщения в главе "${currentChapter}"?`)) return;
+      await sb.from('messages').delete().eq('book_id', currentBookId).eq('chapter', currentChapter);
+      setupChat(currentBookId, currentChapter);
+    }
+
+    function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+    function closeModal() { document.getElementById('book-modal').classList.add('hidden'); if (currentChannel) { sb.removeChannel(currentChannel); currentChannel = null; } currentBookId = null; }
+
+    checkSession();
+    sb.auth.onAuthStateChange(() => checkSession());
+  </script>
+</body>
+</html>
