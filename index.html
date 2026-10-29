@@ -99,7 +99,6 @@
     .input-options { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); align-items: center; }
     .input-options label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
     
-    /* Стили для системного уведомления */
     .system-alert {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
       background: linear-gradient(135deg, #7c3aed, #c084fc); color: white;
@@ -125,7 +124,6 @@
   </style>
 </head>
 <body>
-  <!-- Глобальное уведомление -->
   <div id="global-alert" class="system-alert hidden">
     <span id="alert-text"></span>
     <button onclick="dismissAlert()">✕</button>
@@ -218,7 +216,15 @@
 
     function isValidLogin(login) { return /^[a-zA-Z0-9_-]{3,30}$/.test(login); }
     function loginToEmail(login) { return login + '@' + FAKE_DOMAIN; }
-    function emailToLogin(email) { return email?.endsWith('@' + FAKE_DOMAIN) ? email.slice(0, -(FAKE_DOMAIN.length + 1)) : email; }
+    
+    // ФУНКЦИЯ ПОЛУЧЕНИЯ ЛОГИНА ИЗ EMAIL (БЕЗ УЧЕТА РЕГИСТРА)
+    function emailToLogin(email) { 
+      if (!email) return '';
+      if (email.endsWith('@' + FAKE_DOMAIN)) {
+        return email.slice(0, -(FAKE_DOMAIN.length + 1));
+      }
+      return email;
+    }
 
     function formatTime(isoString) {
       if (!isoString) return '';
@@ -325,6 +331,7 @@
       if (session) {
         currentUser = session.user;
         currentUserName = currentUser.user_metadata?.display_name || emailToLogin(currentUser.email);
+        const loginName = emailToLogin(currentUser.email).toLowerCase();
 
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('main-section').classList.remove('hidden');
@@ -333,15 +340,14 @@
         document.getElementById('user-name').innerHTML = `${escapeHtml(currentUserName)} <span>✏️</span>`;
         document.getElementById('user-avatar').textContent = currentUserName.charAt(0);
 
-        if (emailToLogin(currentUser.email) === 'owner') {
+        // ИСПРАВЛЕННАЯ ПРОВЕРКА (все приводим к нижнему регистру)
+        if (loginName === 'owner') {
           document.getElementById('owner-panel').classList.remove('hidden');
         } else {
           document.getElementById('owner-panel').classList.add('hidden');
         }
 
-        // Проверяем непрочитанные уведомления при входе
         checkUnreadAlerts();
-
         loadAllBooks();
       } else {
         currentUser = null;
@@ -353,19 +359,17 @@
       }
     }
 
-    function isAdmin() { return emailToLogin(currentUser?.email) === 'admin'; }
-    function isOwner() { return emailToLogin(currentUser?.email) === 'owner'; }
+    function isAdmin() { return emailToLogin(currentUser?.email).toLowerCase() === 'admin'; }
+    function isOwner() { return emailToLogin(currentUser?.email).toLowerCase() === 'owner'; }
 
     // --- СИСТЕМНЫЕ УВЕДОМЛЕНИЯ ---
     async function checkUnreadAlerts() {
-      // Получаем последнее уведомление из базы
       const { data } = await sb.from('system_alerts').select('*').order('created_at', { ascending: false }).limit(1);
       
       if (data && data.length > 0) {
         const latestAlert = data[0];
         const readAlerts = JSON.parse(localStorage.getItem('read_alerts') || '[]');
         
-        // Если ID этого уведомления нет в прочитанных — показываем
         if (!readAlerts.includes(latestAlert.id)) {
           currentAlertId = latestAlert.id;
           document.getElementById('alert-text').textContent = latestAlert.content;
@@ -377,7 +381,6 @@
     function dismissAlert() {
       document.getElementById('global-alert').classList.add('hidden');
       if (currentAlertId) {
-        // Запоминаем, что прочитали
         let readAlerts = JSON.parse(localStorage.getItem('read_alerts') || '[]');
         if (!readAlerts.includes(currentAlertId)) {
           readAlerts.push(currentAlertId);
@@ -393,7 +396,7 @@
       
       await sb.from('system_alerts').insert({ content: text });
       input.value = '';
-      alert('Уведомление отправлено! Все пользователи увидят его при следующем заходе.');
+      alert('Уведомление отправлено!');
     }
 
     // --- ДОБАВЛЕНИЕ КНИГИ ---
