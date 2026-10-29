@@ -55,16 +55,33 @@
     .badge-read { background: rgba(16, 185, 129, 0.15); color: #34d399; }
     .badge-finished { background: rgba(124, 58, 237, 0.15); color: #c084fc; }
     
+    /* МОДАЛКА */
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); display: flex; justify-content: center; align-items: flex-end; z-index: 100; }
-    .modal-content { background: var(--bg); width: 100%; max-width: 600px; height: 100vh; height: 100dvh; border-radius: 0; padding: 0; display: flex; flex-direction: column; position: relative; animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+    .modal-content { background: var(--bg); width: 100%; max-width: 600px; height: 100vh; height: 100dvh; border-radius: 0; padding: 0; display: flex; flex-direction: column; position: relative; animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden; }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     
     .modal-header { padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top)); display: flex; gap: 16px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; }
     .modal-close { background: #27272a; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); transition: 0.2s; margin-left: auto; flex-shrink: 0; }
     
-    .modal-body { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: env(safe-area-inset-bottom); }
+    /* Тело модалки — скроллится только само, без внешней прокрутки */
+    .modal-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     
-    .chat-wrapper { display: flex; flex-direction: column; height: 100%; background: var(--chat-bg); margin-top: 20px; border-radius: 20px 20px 0 0; border: 1px solid var(--border); border-bottom: none; overflow: hidden; }
+    /* Зона с инфой о книге (скроллится отдельно, если описание огромное) */
+    .book-info-scroll { padding: 20px; padding-bottom: 0; flex-shrink: 0; max-height: 40vh; overflow-y: auto; }
+    
+    /* Аккордеон для описания */
+    .desc-toggle { 
+      background: #1a1a1e; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; 
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; color: var(--text-muted);
+    }
+    .desc-toggle:hover { color: var(--text); }
+    .desc-content { 
+      display: none; padding: 0 16px 16px 16px; font-size: 14px; color: var(--text-muted); line-height: 1.6;
+      border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; margin-top: -16px; margin-bottom: 16px; background: #1a1a1e;
+    }
+    .desc-content.open { display: block; }
+    
+    .chat-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; background: var(--chat-bg); border-top: 1px solid var(--border); margin-top: 16px; }
     .chapter-tabs-container { padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--card); }
     .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
     .chapter-tabs::-webkit-scrollbar { display: none; }
@@ -73,7 +90,6 @@
     
     .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
     
-    /* ОБЕРТКА ДЛЯ СВАЙПА */
     .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; transition: transform 0.1s ease-out; touch-action: pan-y; }
     .msg-wrapper.my-msg { align-self: flex-end; }
     .msg-wrapper.swiping { transition: none; }
@@ -526,6 +542,14 @@
         `;
       }
 
+      const descHtml = book.description ? `
+        <div class="desc-toggle" onclick="toggleDesc()">
+          <span>📖 Описание книги</span>
+          <span id="desc-arrow">▼</span>
+        </div>
+        <div class="desc-content" id="desc-content">${escapeHtml(book.description)}</div>
+      ` : '';
+
       document.getElementById('modal-content-root').innerHTML = `
         <div class="modal-header">
           ${book.thumbnail ? `<img src="${book.thumbnail}" style="width:50px; height:75px; border-radius:8px; object-fit:cover; box-shadow:0 4px 12px rgba(0,0,0,0.5);" onerror="this.style.display='none'">` : ''}
@@ -537,8 +561,11 @@
         </div>
 
         <div class="modal-body">
-          ${actionBlock}
-          ${deleteBookBtn ? `<div style="margin: 0 20px 20px 20px;">${deleteBookBtn}</div>` : ''}
+          <div class="book-info-scroll">
+            ${descHtml}
+            ${actionBlock}
+            ${deleteBookBtn ? `<div style="margin: 0 20px 20px 20px;">${deleteBookBtn}</div>` : ''}
+          </div>
           
           <div class="chat-wrapper">
             <div class="chapter-tabs-container">
@@ -574,6 +601,18 @@
       
       await loadChapters();
       setupChat(bookId, currentChapter);
+    }
+
+    function toggleDesc() {
+      const content = document.getElementById('desc-content');
+      const arrow = document.getElementById('desc-arrow');
+      if (content.classList.contains('open')) {
+        content.classList.remove('open');
+        arrow.textContent = '▼';
+      } else {
+        content.classList.add('open');
+        arrow.textContent = '▲';
+      }
     }
 
     async function addToMyList(bookId) {
@@ -725,7 +764,6 @@
       if (div) div.remove(); 
     }
 
-    // --- СВАЙП ВЛЕВО ДЛЯ ОТВЕТА ---
     function addSwipeListeners(element) {
       if (!element) return;
       let startX = 0;
@@ -747,15 +785,13 @@
         const diffX = currentX - startX;
         const diffY = Math.abs(e.touches[0].clientY - (e.target.getBoundingClientRect().top + e.target.getBoundingClientRect().height / 2));
 
-        // Если палец ушел больше вбок, чем вниз — это свайп
         if (!isSwiping && Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) {
           isSwiping = true;
         }
 
         if (isSwiping) {
-          // Свайп только влево (отрицательный diff)
           if (diffX < 0) {
-            const move = Math.max(diffX, -80); // Ограничиваем отъезд на 80px
+            const move = Math.max(diffX, -80);
             element.style.transform = `translateX(${move}px)`;
           }
         } else {
@@ -767,7 +803,6 @@
         element.classList.remove('swiping');
         const diffX = currentX - startX;
 
-        // Если свайпнули достаточно далеко влево — вызываем ответ
         if (isSwiping && diffX < -50) {
           const id = element.getAttribute('data-id');
           const author = element.getAttribute('data-author');
@@ -775,7 +810,6 @@
           prepareReply(id, author, text);
         }
 
-        // Возвращаем на место
         element.style.transform = 'translateX(0px)';
         setTimeout(() => {
           isSwiping = false;
