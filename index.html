@@ -65,58 +65,40 @@
       display: flex; 
       flex-direction: column; 
       position: relative; 
-      overflow: hidden; /* Убираем скролл контейнера */
+      overflow: hidden;
+      transition: height 0.1s ease;
     }
     
-    /* ТЕПЕРЬ СКРОЛЛИТСЯ ВСЁ ВНУТРИ ЭТОГО БЛОКА */
+    .modal-header { padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top)); display: flex; gap: 16px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; z-index: 20;}
+    .modal-close { background: #27272a; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); transition: 0.2s; margin-left: auto; flex-shrink: 0; }
+    
+    /* ТЕЛО МОДАЛКИ (СКРОЛЛ) */
     .modal-body { 
       flex: 1; 
       overflow-y: auto; 
       display: flex;
       flex-direction: column;
-      padding-bottom: 80px; /* Отступ для липкого инпута */
+      /* Отступ, чтобы последнее сообщение не пряталось за инпутом */
+      padding-bottom: 100px; 
       -webkit-overflow-scrolling: touch;
     }
     
-    .modal-header { 
-      padding: 16px 20px; 
-      padding-top: max(16px, env(safe-area-inset-top)); 
-      display: flex; gap: 16px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; 
-    }
-    .modal-close { background: #27272a; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); transition: 0.2s; margin-left: auto; flex-shrink: 0; }
-    
-    /* ВЕРХНЯЯ ЧАСТЬ (ИНФО) */
     .book-info-scroll { padding: 20px; padding-bottom: 0; flex-shrink: 0; }
     .desc-toggle { background: #1a1a1e; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; color: var(--text-muted); }
     .desc-toggle:hover { color: var(--text); }
     .desc-content { display: none; padding: 0 16px 16px 16px; font-size: 14px; color: var(--text-muted); line-height: 1.6; border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; margin-top: -16px; margin-bottom: 16px; background: #1a1a1e; }
     .desc-content.open { display: block; }
 
-    /* ЧАТ-КОНТЕЙНЕР (БЕЗ СВОЕГО СКРОЛЛА) */
+    /* ЧАТ-ОБЕРТКА */
     .chat-wrapper { background: var(--chat-bg); border-top: 1px solid var(--border); margin-top: 10px; }
     
-    /* ВКЛАДКИ ГЛАВ (СТАНОВЯТСЯ ЛИПКИМИ) */
-    .chapter-tabs-container { 
-      padding: 12px 16px; 
-      border-bottom: 1px solid var(--border); 
-      background: var(--card); 
-      position: sticky; 
-      top: 0; 
-      z-index: 5;
-    }
+    .chapter-tabs-container { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--card); }
     .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
     .chapter-tabs::-webkit-scrollbar { display: none; }
     .chapter-tab { white-space: nowrap; padding: 6px 14px; border-radius: 20px; background: #27272a; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
     .chapter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
     
-    /* СООБЩЕНИЯ (ПРОСТО ЛИСТАЮТСЯ ВМЕСТЕ СО ВСЕМ) */
-    .chat-messages { 
-      padding: 16px; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 8px; 
-      min-height: 100px; /* Чтобы было куда кликнуть, если пусто */
-    }
+    .chat-messages { padding: 16px; display: flex; flex-direction: column; gap: 8px; min-height: 50px; }
     
     .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; transition: transform 0.1s ease-out; touch-action: pan-y; }
     .msg-wrapper.my-msg { align-self: flex-end; }
@@ -138,10 +120,12 @@
     .spoiler { background: #3f3f46; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; transition: 0.2s; }
     .spoiler.revealed { background: transparent; color: inherit; }
     
-    /* ЗОНА ВВОДА - ТЕПЕРЬ ОНА STICKY (ПРИЛИПАЕТ К НИЗУ ЭКРАНА) */
+    /* ЗОНА ВВОДА - ФИКСИРОВАННАЯ, КАК В ТЕЛЕГРАМЕ */
     .chat-input-area { 
-      position: sticky;
-      bottom: 0;
+      position: absolute; /* Прибиваем к низу модалки */
+      bottom: 0; 
+      left: 0; 
+      right: 0; 
       padding: 12px 16px; 
       padding-bottom: max(12px, env(safe-area-inset-bottom)); 
       background: var(--card); 
@@ -149,8 +133,7 @@
       display: flex; 
       flex-direction: column; 
       gap: 8px; 
-      z-index: 10;
-      width: 100%;
+      z-index: 50;
     }
     .reply-preview { display: none; background: #1a1a1e; border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 8px; font-size: 13px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     
@@ -275,14 +258,18 @@
     let replyToMessage = null;
     let currentAlertId = null;
 
-    // --- ОБРАБОТКА КЛАВИАТУРЫ ---
+    // --- ОБРАБОТКА КЛАВИАТУРЫ (САМЫЙ ВАЖНЫЙ ФИКС) ---
     const visualViewport = window.visualViewport;
     if (visualViewport) {
       visualViewport.addEventListener('resize', () => {
         const modalContent = document.querySelector('.modal-content');
+        // Подстраиваем высоту модалки под клавиатуру
         if (modalContent && !document.getElementById('book-modal').classList.contains('hidden')) {
           modalContent.style.height = `${visualViewport.height}px`;
           window.scrollTo(0, 0);
+          
+          const body = document.querySelector('.modal-body');
+          if (body) body.scrollTop = body.scrollHeight;
         }
       });
     }
@@ -642,20 +629,21 @@
             </div>
 
             <div class="chat-messages" id="chat-area"></div>
-            
-            <div class="chat-input-area">
-              <div class="reply-preview" id="reply-preview">
-                <span id="reply-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
-                <button onclick="cancelReply()" style="background:none; border:none; color:var(--text); font-size:16px; cursor:pointer;">✕</button>
-              </div>
-              <div class="input-options">
-                <label><input type="checkbox" id="spoiler-check" style="width:auto; margin:0;" /> Под спойлер</label>
-              </div>
-              <div class="input-row">
-                <input id="chat-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" onfocus="scrollToBottom()" />
-                <button class="btn btn-primary" onclick="sendMessage()">➤</button>
-              </div>
-            </div>
+          </div>
+        </div>
+        
+        <!-- ФИКСИРОВАННЫЙ ИНПУТ -->
+        <div class="chat-input-area">
+          <div class="reply-preview" id="reply-preview">
+            <span id="reply-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+            <button onclick="cancelReply()" style="background:none; border:none; color:var(--text); font-size:16px; cursor:pointer;">✕</button>
+          </div>
+          <div class="input-options">
+            <label><input type="checkbox" id="spoiler-check" style="width:auto; margin:0;" /> Под спойлер</label>
+          </div>
+          <div class="input-row">
+            <input id="chat-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" onfocus="scrollToBottom()" />
+            <button class="btn btn-primary" onclick="sendMessage()">➤</button>
           </div>
         </div>
       `;
@@ -836,6 +824,7 @@
       const wrapper = div.firstElementChild;
       area.appendChild(wrapper); 
       addSwipeListeners(wrapper);
+      scrollToBottom();
     }
     
     function updateMessageInDom(msg) { 
