@@ -57,57 +57,65 @@
     
     /* МОДАЛКА */
     .modal { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; justify-content: center; }
-    .modal-content { background: var(--bg); width: 100%; max-width: 600px; height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; }
-    
-    .modal-header { padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top)); display: flex; gap: 16px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; }
-    .modal-close { background: #27272a; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); transition: 0.2s; margin-left: auto; flex-shrink: 0; }
-    
-    /* ТЕЛО МОДАЛКИ */
-    .modal-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-    
-    /* СТАТИЧНАЯ ВЕРХНЯЯ ЧАСТЬ (СТАТУС, ОПИСАНИЕ) */
-    .book-info-scroll { 
-      padding: 20px; padding-bottom: 0; 
-      flex-shrink: 0; 
-      max-height: 35vh; 
-      overflow-y: auto; 
-      -webkit-overflow-scrolling: touch; 
+    .modal-content { 
+      background: var(--bg); 
+      width: 100%; 
+      max-width: 600px; 
+      height: 100%; 
+      display: flex; 
+      flex-direction: column; 
+      position: relative; 
+      overflow: hidden; /* Убираем скролл контейнера */
     }
     
+    /* ТЕПЕРЬ СКРОЛЛИТСЯ ВСЁ ВНУТРИ ЭТОГО БЛОКА */
+    .modal-body { 
+      flex: 1; 
+      overflow-y: auto; 
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 80px; /* Отступ для липкого инпута */
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .modal-header { 
+      padding: 16px 20px; 
+      padding-top: max(16px, env(safe-area-inset-top)); 
+      display: flex; gap: 16px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; 
+    }
+    .modal-close { background: #27272a; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); transition: 0.2s; margin-left: auto; flex-shrink: 0; }
+    
+    /* ВЕРХНЯЯ ЧАСТЬ (ИНФО) */
+    .book-info-scroll { padding: 20px; padding-bottom: 0; flex-shrink: 0; }
     .desc-toggle { background: #1a1a1e; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; color: var(--text-muted); }
     .desc-toggle:hover { color: var(--text); }
     .desc-content { display: none; padding: 0 16px 16px 16px; font-size: 14px; color: var(--text-muted); line-height: 1.6; border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; margin-top: -16px; margin-bottom: 16px; background: #1a1a1e; }
     .desc-content.open { display: block; }
 
-    /* ЧАТ (ЗАНИМАЕТ ВСЁ ОСТАЛЬНОЕ МЕСТО) */
-    .chat-wrapper { 
-      display: flex; 
-      flex-direction: column; 
-      flex: 1; 
-      min-height: 0; 
-      background: var(--chat-bg); 
-      border-top: 1px solid var(--border); 
-      margin-top: 10px; 
-      position: relative;
-    }
+    /* ЧАТ-КОНТЕЙНЕР (БЕЗ СВОЕГО СКРОЛЛА) */
+    .chat-wrapper { background: var(--chat-bg); border-top: 1px solid var(--border); margin-top: 10px; }
     
-    .chapter-tabs-container { padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--card); }
+    /* ВКЛАДКИ ГЛАВ (СТАНОВЯТСЯ ЛИПКИМИ) */
+    .chapter-tabs-container { 
+      padding: 12px 16px; 
+      border-bottom: 1px solid var(--border); 
+      background: var(--card); 
+      position: sticky; 
+      top: 0; 
+      z-index: 5;
+    }
     .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
     .chapter-tabs::-webkit-scrollbar { display: none; }
     .chapter-tab { white-space: nowrap; padding: 6px 14px; border-radius: 20px; background: #27272a; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
     .chapter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
     
-    /* СООБЩЕНИЯ - СКРОЛЛ ЗДЕСЬ */
+    /* СООБЩЕНИЯ (ПРОСТО ЛИСТАЮТСЯ ВМЕСТЕ СО ВСЕМ) */
     .chat-messages { 
-      flex: 1; 
-      overflow-y: auto; 
       padding: 16px; 
-      padding-bottom: 20px;
       display: flex; 
       flex-direction: column; 
       gap: 8px; 
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
+      min-height: 100px; /* Чтобы было куда кликнуть, если пусто */
     }
     
     .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; transition: transform 0.1s ease-out; touch-action: pan-y; }
@@ -130,8 +138,10 @@
     .spoiler { background: #3f3f46; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; transition: 0.2s; }
     .spoiler.revealed { background: transparent; color: inherit; }
     
-    /* ВВОД - ПРИБИТ К НИЗУ */
+    /* ЗОНА ВВОДА - ТЕПЕРЬ ОНА STICKY (ПРИЛИПАЕТ К НИЗУ ЭКРАНА) */
     .chat-input-area { 
+      position: sticky;
+      bottom: 0;
       padding: 12px 16px; 
       padding-bottom: max(12px, env(safe-area-inset-bottom)); 
       background: var(--card); 
@@ -139,8 +149,8 @@
       display: flex; 
       flex-direction: column; 
       gap: 8px; 
-      flex-shrink: 0; 
       z-index: 10;
+      width: 100%;
     }
     .reply-preview { display: none; background: #1a1a1e; border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 8px; font-size: 13px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     
@@ -273,8 +283,6 @@
         if (modalContent && !document.getElementById('book-modal').classList.contains('hidden')) {
           modalContent.style.height = `${visualViewport.height}px`;
           window.scrollTo(0, 0);
-          const chatArea = document.getElementById('chat-area');
-          if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
         }
       });
     }
@@ -567,7 +575,6 @@
       const rating = ub?.rating || 0;
       const adminBtn = (isAdmin() || isOwner()) ? `<button class="btn btn-danger btn-small" style="margin-top:4px;" onclick="clearChat()">🗑 Очистить</button>` : '';
       const deleteBookBtn = (isAdmin() || isOwner()) ? `<button class="btn btn-danger btn-small" style="margin-top:8px;" onclick="deleteBook()">Удалить книгу</button>` : '';
-      // Кнопка редактирования видна ВСЕМ
       const editBookBtn = `<button class="btn btn-secondary btn-small" style="margin-top:8px;" onclick="editBookInfo()">✏️ Изменить книгу</button>`;
 
       let actionBlock = '';
@@ -657,7 +664,6 @@
       setupChat(bookId, currentChapter);
     }
 
-    // РЕДАКТИРОВАНИЕ КНИГИ (ДОСТУПНО ВСЕМ)
     async function editBookInfo() {
       const { data: book } = await sb.from('books').select('*').eq('id', currentBookId).single();
       if (!book) return;
@@ -678,8 +684,8 @@
       if (error) alert('Ошибка: ' + error.message);
       else {
         alert('Книга обновлена!');
-        openBook(currentBookId); // Перезагружаем модалку
-        loadAllBooks(); // Обновляем список
+        openBook(currentBookId);
+        loadAllBooks();
       }
     }
 
@@ -696,8 +702,8 @@
     }
 
     function scrollToBottom() {
-      const area = document.getElementById('chat-area');
-      if (area) setTimeout(() => { area.scrollTop = area.scrollHeight; }, 300);
+      const body = document.querySelector('.modal-body');
+      if (body) setTimeout(() => { body.scrollTop = body.scrollHeight; }, 300);
     }
 
     async function addToMyList(bookId) {
@@ -785,7 +791,7 @@
         area.innerHTML = '<p style="color:var(--text-muted); text-align:center; font-size:14px; margin: 20px 0;">Тут пока тихо...</p>';
       } else {
         data.forEach(appendMessage);
-        setTimeout(() => { area.scrollTop = area.scrollHeight; }, 50);
+        setTimeout(() => { const body = document.querySelector('.modal-body'); if (body) body.scrollTop = body.scrollHeight; }, 50);
       }
     }
 
@@ -830,7 +836,6 @@
       const wrapper = div.firstElementChild;
       area.appendChild(wrapper); 
       addSwipeListeners(wrapper);
-      area.scrollTop = area.scrollHeight;
     }
     
     function updateMessageInDom(msg) { 
