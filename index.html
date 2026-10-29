@@ -66,21 +66,20 @@
       flex-direction: column; 
       position: relative; 
       overflow: hidden;
-      transition: height 0.1s ease;
     }
     
     .modal-header { padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top)); display: flex; gap: 16px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; z-index: 20;}
     .modal-close { background: #27272a; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); transition: 0.2s; margin-left: auto; flex-shrink: 0; }
     
-    /* ТЕЛО МОДАЛКИ (СКРОЛЛ) */
+    /* ТЕЛО МОДАЛКИ (ВСЁ СКРОЛЛИТСЯ ЗДЕСЬ) */
     .modal-body { 
       flex: 1; 
       overflow-y: auto; 
       display: flex;
       flex-direction: column;
-      /* Отступ, чтобы последнее сообщение не пряталось за инпутом */
-      padding-bottom: 100px; 
+      padding-bottom: 120px; /* Место под прилипший инпут */
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     
     .book-info-scroll { padding: 20px; padding-bottom: 0; flex-shrink: 0; }
@@ -92,7 +91,15 @@
     /* ЧАТ-ОБЕРТКА */
     .chat-wrapper { background: var(--chat-bg); border-top: 1px solid var(--border); margin-top: 10px; }
     
-    .chapter-tabs-container { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--card); }
+    /* ВКЛАДКИ ГЛАВ (ПРИЛИПАЮТ К ВЕРХУ ПРИ СКРОЛЛЕ) */
+    .chapter-tabs-container { 
+      padding: 12px 16px; 
+      border-bottom: 1px solid var(--border); 
+      background: var(--card); 
+      position: sticky; 
+      top: 0; 
+      z-index: 15;
+    }
     .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
     .chapter-tabs::-webkit-scrollbar { display: none; }
     .chapter-tab { white-space: nowrap; padding: 6px 14px; border-radius: 20px; background: #27272a; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
@@ -120,12 +127,10 @@
     .spoiler { background: #3f3f46; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; transition: 0.2s; }
     .spoiler.revealed { background: transparent; color: inherit; }
     
-    /* ЗОНА ВВОДА - ФИКСИРОВАННАЯ, КАК В ТЕЛЕГРАМЕ */
+    /* ЗОНА ВВОДА (ПРИЛИПАЕТ К НИЗУ ЭКРАНА) */
     .chat-input-area { 
-      position: absolute; /* Прибиваем к низу модалки */
+      position: sticky; 
       bottom: 0; 
-      left: 0; 
-      right: 0; 
       padding: 12px 16px; 
       padding-bottom: max(12px, env(safe-area-inset-bottom)); 
       background: var(--card); 
@@ -257,22 +262,6 @@
     let selectedFile = null;
     let replyToMessage = null;
     let currentAlertId = null;
-
-    // --- ОБРАБОТКА КЛАВИАТУРЫ (САМЫЙ ВАЖНЫЙ ФИКС) ---
-    const visualViewport = window.visualViewport;
-    if (visualViewport) {
-      visualViewport.addEventListener('resize', () => {
-        const modalContent = document.querySelector('.modal-content');
-        // Подстраиваем высоту модалки под клавиатуру
-        if (modalContent && !document.getElementById('book-modal').classList.contains('hidden')) {
-          modalContent.style.height = `${visualViewport.height}px`;
-          window.scrollTo(0, 0);
-          
-          const body = document.querySelector('.modal-body');
-          if (body) body.scrollTop = body.scrollHeight;
-        }
-      });
-    }
 
     function isValidLogin(login) { return /^[a-zA-Z0-9_-]{3,30}$/.test(login); }
     function loginToEmail(login) { return login + '@' + FAKE_DOMAIN; }
@@ -629,21 +618,20 @@
             </div>
 
             <div class="chat-messages" id="chat-area"></div>
-          </div>
-        </div>
-        
-        <!-- ФИКСИРОВАННЫЙ ИНПУТ -->
-        <div class="chat-input-area">
-          <div class="reply-preview" id="reply-preview">
-            <span id="reply-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
-            <button onclick="cancelReply()" style="background:none; border:none; color:var(--text); font-size:16px; cursor:pointer;">✕</button>
-          </div>
-          <div class="input-options">
-            <label><input type="checkbox" id="spoiler-check" style="width:auto; margin:0;" /> Под спойлер</label>
-          </div>
-          <div class="input-row">
-            <input id="chat-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" onfocus="scrollToBottom()" />
-            <button class="btn btn-primary" onclick="sendMessage()">➤</button>
+            
+            <div class="chat-input-area">
+              <div class="reply-preview" id="reply-preview">
+                <span id="reply-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                <button onclick="cancelReply()" style="background:none; border:none; color:var(--text); font-size:16px; cursor:pointer;">✕</button>
+              </div>
+              <div class="input-options">
+                <label><input type="checkbox" id="spoiler-check" style="width:auto; margin:0;" /> Под спойлер</label>
+              </div>
+              <div class="input-row">
+                <input id="chat-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" onfocus="scrollToBottom()" />
+                <button class="btn btn-primary" onclick="sendMessage()">➤</button>
+              </div>
+            </div>
           </div>
         </div>
       `;
@@ -960,8 +948,6 @@
       document.getElementById('book-modal').classList.add('hidden'); 
       if (currentChannel) { sb.removeChannel(currentChannel); currentChannel = null; } 
       currentBookId = null; 
-      const modalContent = document.querySelector('.modal-content');
-      if (modalContent) modalContent.style.height = ''; 
     }
 
     checkSession();
