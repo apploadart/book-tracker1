@@ -17,11 +17,10 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
       margin: 0; padding: 0; background: var(--bg); color: var(--text); line-height: 1.5; 
       -webkit-font-smoothing: antialiased; background-image: radial-gradient(circle at top right, rgba(124, 58, 237, 0.1), transparent 40%);
-      overflow: hidden; /* Чтобы страница не скроллилась, скролл только в чате */
+      overflow: hidden; 
     }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 60px; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
     
-    /* Шапка профиля */
     .profile-header { display: flex; align-items: center; gap: 16px; padding: 20px 0 24px 0; flex-shrink: 0; }
     .avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; text-transform: uppercase; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4); cursor: pointer; position: relative; }
     .profile-info h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
@@ -56,20 +55,16 @@
     .badge-read { background: rgba(16, 185, 129, 0.15); color: #34d399; }
     .badge-finished { background: rgba(124, 58, 237, 0.15); color: #c084fc; }
     
-    /* Модалка книги - на весь экран для удобства телефона */
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); display: flex; justify-content: center; align-items: flex-end; z-index: 100; }
     .modal-content { background: var(--bg); width: 100%; max-width: 600px; height: 100vh; border-radius: 0; padding: 0; display: flex; flex-direction: column; position: relative; animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     
     .modal-header { padding: 20px; display: flex; gap: 16px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; }
     .modal-close { background: #27272a; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); transition: 0.2s; margin-left: auto; }
-    .modal-close:hover { background: var(--danger); }
     
     .modal-body { flex: 1; overflow-y: auto; padding: 20px; }
     
-    /* ЧАТ ИНТЕРФЕЙС */
     .chat-wrapper { display: flex; flex-direction: column; height: 100%; background: var(--chat-bg); margin-top: 20px; border-radius: 20px 20px 0 0; border: 1px solid var(--border); border-bottom: none; overflow: hidden; }
-    
     .chapter-tabs-container { padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--card); }
     .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
     .chapter-tabs::-webkit-scrollbar { display: none; }
@@ -78,17 +73,10 @@
     
     .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
     
-    /* Сообщения */
     .msg { display: flex; flex-direction: column; max-width: 85%; }
     .msg.my-msg { align-self: flex-end; }
-    
-    .msg-bubble { 
-      background: var(--msg-in); padding: 10px 14px; border-radius: 16px; 
-      border-bottom-left-radius: 4px; font-size: 15px; border: 1px solid var(--border);
-      position: relative; word-wrap: break-word;
-    }
+    .msg-bubble { background: var(--msg-in); padding: 10px 14px; border-radius: 16px; border-bottom-left-radius: 4px; font-size: 15px; border: 1px solid var(--border); position: relative; word-wrap: break-word; }
     .msg.my-msg .msg-bubble { background: var(--msg-out); border-color: var(--primary); border-bottom-left-radius: 16px; border-bottom-right-radius: 4px; color: white; }
-    
     .msg-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
     .msg.my-msg .msg-meta { flex-direction: row-reverse; }
     
@@ -96,29 +84,32 @@
     .msg-bubble:hover .msg-actions { display: flex; }
     .msg-actions button { background: none; border: none; cursor: pointer; font-size: 14px; padding: 4px 8px; color: var(--text); opacity: 0.7; }
     
-    /* Ответ на сообщение (цитата) */
-    .reply-quote {
-      background: rgba(0,0,0,0.2); border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; color: var(--text-muted);
-    }
+    .reply-quote { background: rgba(0,0,0,0.2); border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
     .reply-quote b { color: var(--text); }
 
-    /* Спойлер */
     .spoiler { background: #3f3f46; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; transition: 0.2s; }
     .spoiler.revealed { background: transparent; color: inherit; }
     
-    .chat-input-area { 
-      padding: 12px 16px; background: var(--card); border-top: 1px solid var(--border); 
-      display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; 
-    }
-    
+    .chat-input-area { padding: 12px 16px; background: var(--card); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
     .reply-preview { display: none; background: #1a1a1e; border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 8px; font-size: 13px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     
     .input-row { display: flex; gap: 8px; align-items: flex-end; }
     .input-row input { margin-bottom: 0; border-radius: 20px; padding: 12px 16px; background: #000; }
     .input-row button { width: 44px; height: 44px; border-radius: 50%; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 0; }
-    
     .input-options { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); align-items: center; }
     .input-options label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+    
+    /* Стили для системного уведомления */
+    .system-alert {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, #7c3aed, #c084fc); color: white;
+      padding: 16px 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
+      z-index: 1000; display: flex; justify-content: space-between; align-items: center; gap: 16px;
+      width: calc(100% - 40px); max-width: 500px; animation: slideDown 0.4s ease;
+    }
+    @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    .system-alert span { font-size: 15px; font-weight: 500; line-height: 1.3; }
+    .system-alert button { background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     
     .hidden { display: none !important; }
     .flex-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -134,6 +125,12 @@
   </style>
 </head>
 <body>
+  <!-- Глобальное уведомление -->
+  <div id="global-alert" class="system-alert hidden">
+    <span id="alert-text"></span>
+    <button onclick="dismissAlert()">✕</button>
+  </div>
+
   <div class="container">
     
     <div id="profile-header" class="profile-header hidden">
@@ -160,6 +157,15 @@
     </div>
 
     <div id="main-section" class="hidden">
+      
+      <!-- ПАНЕЛЬ ВЛАДЕЛЬЦА -->
+      <div id="owner-panel" class="card hidden" style="border-color: var(--accent); background: linear-gradient(to right, #121214, rgba(192, 132, 252, 0.1));">
+        <h3 style="margin-top:0; font-size: 16px; color: var(--accent);">👑 Панель Владельца</h3>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Отправить системное уведомление (увидят все при входе):</p>
+        <textarea id="alert-input" placeholder="Текст уведомления..." rows="2" style="margin-bottom:8px; background:#000;"></textarea>
+        <button class="btn btn-primary" onclick="sendSystemAlert()">Отправить</button>
+      </div>
+
       <div class="card" style="display:flex; justify-content:space-between; align-items:center; background: linear-gradient(to right, #121214, #1a1a1e); border-color: #3f3f46;">
         <div>
           <h3 style="margin:0 0 4px 0; font-size:16px; font-weight:800;">Что почитать?</h3>
@@ -188,7 +194,6 @@
     </div>
   </div>
 
-  <!-- Модалка книги -->
   <div id="book-modal" class="modal hidden">
     <div class="modal-content">
       <div id="modal-content-root"></div>
@@ -208,7 +213,8 @@
     let currentChapter = 'Общий чат';
     let currentChannel = null;
     let selectedFile = null;
-    let replyToMessage = null; // Храним сообщение, на которое отвечаем
+    let replyToMessage = null;
+    let currentAlertId = null;
 
     function isValidLogin(login) { return /^[a-zA-Z0-9_-]{3,30}$/.test(login); }
     function loginToEmail(login) { return login + '@' + FAKE_DOMAIN; }
@@ -270,7 +276,7 @@
       const login = document.getElementById('login-id').value.trim();
       const password = document.getElementById('login-password').value;
       const msg = document.getElementById('auth-msg');
-      if (login.toLowerCase() === 'admin') { msg.textContent = 'Этот логин занят.'; return; }
+      if (login.toLowerCase() === 'admin' || login.toLowerCase() === 'owner') { msg.textContent = 'Этот логин занят.'; return; }
       if (!isValidLogin(login)) { msg.textContent = 'ID: 3–30 символов'; return; }
       if (password.length < 6) { msg.textContent = 'Пароль от 6 символов'; return; }
       
@@ -290,6 +296,12 @@
       const password = document.getElementById('login-password').value;
       const msg = document.getElementById('auth-msg');
       
+      if (login.toLowerCase() === 'owner') {
+        const { error } = await sb.auth.signInWithPassword({ email: loginToEmail('owner'), password });
+        if (error) { msg.textContent = 'Неверный пароль владельца.'; return; }
+        msg.textContent = ''; checkSession(); return;
+      }
+
       if (login.toLowerCase() === 'admin') {
         const { error } = await sb.auth.signInWithPassword({ email: loginToEmail('admin'), password });
         if (error) { msg.textContent = 'Неверный пароль админа.'; return; }
@@ -321,16 +333,68 @@
         document.getElementById('user-name').innerHTML = `${escapeHtml(currentUserName)} <span>✏️</span>`;
         document.getElementById('user-avatar').textContent = currentUserName.charAt(0);
 
+        if (emailToLogin(currentUser.email) === 'owner') {
+          document.getElementById('owner-panel').classList.remove('hidden');
+        } else {
+          document.getElementById('owner-panel').classList.add('hidden');
+        }
+
+        // Проверяем непрочитанные уведомления при входе
+        checkUnreadAlerts();
+
         loadAllBooks();
       } else {
         currentUser = null;
         document.getElementById('auth-section').classList.remove('hidden');
         document.getElementById('main-section').classList.add('hidden');
         document.getElementById('profile-header').classList.add('hidden');
+        document.getElementById('owner-panel').classList.add('hidden');
+        document.getElementById('global-alert').classList.add('hidden');
       }
     }
 
     function isAdmin() { return emailToLogin(currentUser?.email) === 'admin'; }
+    function isOwner() { return emailToLogin(currentUser?.email) === 'owner'; }
+
+    // --- СИСТЕМНЫЕ УВЕДОМЛЕНИЯ ---
+    async function checkUnreadAlerts() {
+      // Получаем последнее уведомление из базы
+      const { data } = await sb.from('system_alerts').select('*').order('created_at', { ascending: false }).limit(1);
+      
+      if (data && data.length > 0) {
+        const latestAlert = data[0];
+        const readAlerts = JSON.parse(localStorage.getItem('read_alerts') || '[]');
+        
+        // Если ID этого уведомления нет в прочитанных — показываем
+        if (!readAlerts.includes(latestAlert.id)) {
+          currentAlertId = latestAlert.id;
+          document.getElementById('alert-text').textContent = latestAlert.content;
+          document.getElementById('global-alert').classList.remove('hidden');
+        }
+      }
+    }
+
+    function dismissAlert() {
+      document.getElementById('global-alert').classList.add('hidden');
+      if (currentAlertId) {
+        // Запоминаем, что прочитали
+        let readAlerts = JSON.parse(localStorage.getItem('read_alerts') || '[]');
+        if (!readAlerts.includes(currentAlertId)) {
+          readAlerts.push(currentAlertId);
+          localStorage.setItem('read_alerts', JSON.stringify(readAlerts));
+        }
+      }
+    }
+
+    async function sendSystemAlert() {
+      const input = document.getElementById('alert-input');
+      const text = input.value.trim();
+      if (!text) return;
+      
+      await sb.from('system_alerts').insert({ content: text });
+      input.value = '';
+      alert('Уведомление отправлено! Все пользователи увидят его при следующем заходе.');
+    }
 
     // --- ДОБАВЛЕНИЕ КНИГИ ---
     async function addBookManually() {
@@ -428,7 +492,7 @@
       }).join('');
     }
 
-    // --- ОТКРЫТИЕ КНИГИ (МОБИЛЬНЫЙ ИНТЕРФЕЙС) ---
+    // --- ОТКРЫТИЕ КНИГИ ---
     async function openBook(bookId) {
       currentBookId = bookId;
       currentChapter = 'Общий чат';
@@ -440,8 +504,8 @@
       
       const status = ub?.status || null;
       const rating = ub?.rating || 0;
-      const adminBtn = isAdmin() ? `<button class="btn btn-danger btn-small" style="margin-top:4px;" onclick="clearChat()">🗑 Очистить</button>` : '';
-      const deleteBookBtn = isAdmin() ? `<button class="btn btn-danger btn-small" style="margin-top:8px;" onclick="deleteBook()">Удалить книгу</button>` : '';
+      const adminBtn = (isAdmin() || isOwner()) ? `<button class="btn btn-danger btn-small" style="margin-top:4px;" onclick="clearChat()">🗑 Очистить</button>` : '';
+      const deleteBookBtn = (isAdmin() || isOwner()) ? `<button class="btn btn-danger btn-small" style="margin-top:8px;" onclick="deleteBook()">Удалить книгу</button>` : '';
 
       let actionBlock = '';
       if (!status) {
@@ -552,7 +616,7 @@
 
     async function switchChapter(chapName) {
       currentChapter = chapName;
-      cancelReply(); // Сбрасываем ответ при смене главы
+      cancelReply();
       await loadChapters();
       setupChat(currentBookId, chapName);
     }
@@ -571,7 +635,7 @@
     }
 
     async function deleteBook() {
-      if (!isAdmin()) return;
+      if (!isAdmin() && !isOwner()) return;
       if (!confirm('Удалить книгу из общей базы?')) return;
       await sb.from('books').delete().eq('id', currentBookId);
       closeModal(); loadAllBooks();
@@ -614,7 +678,6 @@
       const timeStr = msg.created_at ? formatTime(msg.created_at) : '';
       
       let content = msg.content;
-      // Обработка спойлера
       if (msg.is_spoiler) {
         content = `<span class="spoiler" onclick="this.classList.toggle('revealed')">${escapeHtml(content)}</span>`;
       } else {
@@ -623,8 +686,8 @@
 
       const actionBtns = `
         <button onclick="prepareReply(${msg.id}, '${escapeHtml(displayName).replace(/'/g, "\\'")}', '${escapeHtml(msg.content).replace(/'/g, "\\'")}')" title="Ответить">↩️</button>
-        ${isMe || isAdmin() ? `<button onclick="editMessage(${msg.id}, '${escapeHtml(msg.content).replace(/'/g, "\\'")}')" title="Изменить">✏️</button>` : ''}
-        ${isMe || isAdmin() ? `<button onclick="deleteMessage(${msg.id})" title="Удалить">🗑</button>` : ''}
+        ${isMe || isAdmin() || isOwner() ? `<button onclick="editMessage(${msg.id}, '${escapeHtml(msg.content).replace(/'/g, "\\'")}')" title="Изменить">✏️</button>` : ''}
+        ${isMe || isAdmin() || isOwner() ? `<button onclick="deleteMessage(${msg.id})" title="Удалить">🗑</button>` : ''}
       `;
 
       return `
@@ -657,7 +720,7 @@
     }
     
     function removeMessageFromDom(id) { 
-      const div = document.getElementById(`msg-${msg.id}`); 
+      const div = document.getElementById(`msg-${id}`); 
       if (div) div.remove(); 
     }
 
@@ -682,7 +745,6 @@
       
       const isSpoiler = document.getElementById('spoiler-check')?.checked || false;
       
-      // Если отвечаем на сообщение, добавляем текст цитаты прямо в начало сообщения
       let finalContent = content;
       if (replyToMessage) {
         finalContent = `> ${replyToMessage.author}: ${replyToMessage.text.substring(0, 20)}...\n${content}`;
@@ -715,7 +777,7 @@
     }
 
     async function clearChat() {
-      if (!isAdmin()) return alert('Только админ может очищать чат.');
+      if (!isAdmin() && !isOwner()) return alert('Только админ или владелец может очищать чат.');
       if (!confirm(`Удалить ВСЕ сообщения в главе "${currentChapter}"?`)) return;
       await sb.from('messages').delete().eq('book_id', currentBookId).eq('chapter', currentChapter);
       setupChat(currentBookId, currentChapter);
