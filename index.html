@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>Book Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -62,8 +62,7 @@
       background: var(--bg); 
       width: 100%; 
       max-width: 600px; 
-      height: 100vh; 
-      height: 100dvh; 
+      height: 100%; 
       display: flex; 
       flex-direction: column; 
       position: relative; 
@@ -100,7 +99,6 @@
       border-top: 1px solid var(--border); 
       margin-top: 10px; 
       position: relative;
-      padding-bottom: 80px; /* Отступ для фиксированного инпута */
     }
     
     .chapter-tabs-container { padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--card); }
@@ -118,6 +116,8 @@
       flex-direction: column; 
       gap: 8px; 
       -webkit-overflow-scrolling: touch;
+      /* Важно: добавляем нижний отступ, чтобы последнее сообщение не было под инпутом */
+      padding-bottom: 20px; 
     }
     
     .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; transition: transform 0.1s ease-out; touch-action: pan-y; }
@@ -140,19 +140,16 @@
     .spoiler { background: #3f3f46; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; transition: 0.2s; }
     .spoiler.revealed { background: transparent; color: inherit; }
     
-    /* ЗОНА ВВОДА ЖЕСТКО ПРИБИТА К НИЗУ ЭКРАНА */
+    /* ЗОНА ВВОДА - ВАЖНО: ОНА ТЕПЕРЬ В ПОТОКЕ ФЛЕКСА */
     .chat-input-area { 
-      position: absolute; 
-      bottom: 0; 
-      left: 0; 
-      right: 0; 
       padding: 12px 16px; 
-      padding-bottom: max(12px, env(safe-area-inset-bottom)); /* Учет нижней панели iPhone */
+      padding-bottom: max(12px, env(safe-area-inset-bottom)); 
       background: var(--card); 
       border-top: 1px solid var(--border); 
       display: flex; 
       flex-direction: column; 
       gap: 8px; 
+      flex-shrink: 0; 
       z-index: 10;
     }
     .reply-preview { display: none; background: #1a1a1e; border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 8px; font-size: 13px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -663,7 +660,6 @@
       }
     }
 
-    // Функция для прокрутки вниз при фокусе на инпут
     function scrollToBottom() {
       const area = document.getElementById('chat-area');
       if (area) setTimeout(() => { area.scrollTop = area.scrollHeight; }, 300);
