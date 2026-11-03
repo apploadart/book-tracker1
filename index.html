@@ -3,146 +3,200 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#07060d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Book Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --bg: #050505; --card: #121214; --card-hover: #1a1a1e; --text: #ffffff; --text-muted: #888892;
-      --primary: #7c3aed; --primary-hover: #6d28d9; --accent: #c084fc; --danger: #ef4444;
-      --border: #27272a; --shadow: 0 8px 32px rgba(0,0,0,0.6);
-      --chat-bg: #0a0a0c; --msg-out: #7c3aed; --msg-in: #1a1a1e;
+      --bg: #07060d; --surface: rgba(255,255,255,0.045); --surface-2: rgba(255,255,255,0.075);
+      --border: rgba(255,255,255,0.09); --text: #f5f3ff; --muted: #8e8aa3;
+      --primary: #8b5cf6; --accent: #d946ef; --danger: #f43f5e; --ok: #34d399; --star: #fbbf24;
+      --grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 55%, #ec4899 100%);
+      --shadow: 0 10px 40px rgba(0,0,0,0.55);
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100%; }
+    html { background: var(--bg); height: 100%; overscroll-behavior: none; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0; padding: 0; background: var(--bg); color: var(--text); line-height: 1.5;
-      -webkit-font-smoothing: antialiased; background-image: radial-gradient(circle at top right, rgba(124, 58, 237, 0.1), transparent 40%);
-      overflow: hidden;
+      height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased;
     }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 60px; height: 100%; overflow-y: auto; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; }
+    /* аврора на фоне */
+    body::before {
+      content: ""; position: fixed; inset: -20% -20% auto -20%; height: 70%; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(40% 50% at 20% 30%, rgba(124,58,237,0.35), transparent 70%),
+        radial-gradient(35% 45% at 80% 20%, rgba(236,72,153,0.22), transparent 70%);
+      filter: blur(30px);
+    }
+    body.modal-open .container { visibility: hidden; }
+    body.modal-open::before { display: none; }
 
-    .profile-header { display: flex; align-items: center; gap: 16px; padding: 20px 0 24px 0; flex-shrink: 0; }
-    .avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; text-transform: uppercase; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4); cursor: pointer; position: relative; flex-shrink: 0; }
-    .profile-info h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .profile-stats { display: flex; gap: 12px; font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .container {
+      position: relative; z-index: 1; max-width: 600px; margin: 0 auto; height: 100%;
+      overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+      padding: max(18px, env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
+    }
 
-    .card { background: var(--card); border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); animation: fadeIn 0.4s ease; flex-shrink: 0; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    /* ---------- общие элементы ---------- */
+    .glass { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .card { padding: 20px; margin-bottom: 16px; animation: rise .45s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
-    input, select, textarea { width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; outline: none; transition: all 0.2s; margin-bottom: 16px; background: #000; color: var(--text); font-family: inherit; }
-    input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2); }
+    input, select, textarea {
+      width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; font-size: 16px; outline: none;
+      transition: .2s; margin-bottom: 12px; background: rgba(0,0,0,0.35); color: var(--text); font-family: inherit; -webkit-appearance: none; appearance: none;
+    }
+    select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
+    input::placeholder, textarea::placeholder { color: #5f5b73; }
+    input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(139,92,246,0.18); }
 
-    .file-upload { display: block; width: 100%; padding: 14px; border: 2px dashed var(--border); border-radius: 12px; text-align: center; cursor: pointer; color: var(--text-muted); transition: 0.2s; margin-bottom: 16px; font-size: 14px; }
-    .file-upload:hover { border-color: var(--primary); color: var(--primary); }
+    .btn { display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 14px 20px; border: none; border-radius: 14px; font-size: 16px; font-weight: 650; cursor: pointer; transition: .2s; width: 100%; margin-bottom: 10px; color: var(--text); font-family: inherit; }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .6; }
+    .btn-primary { background: var(--grad); box-shadow: 0 8px 24px rgba(139,92,246,0.35); color: #fff; }
+    .btn-secondary { background: var(--surface-2); border: 1px solid var(--border); }
+    .btn-danger { background: rgba(244,63,94,0.1); color: #fb7185; border: 1px solid rgba(244,63,94,0.25); }
+    .btn-small { width: auto; padding: 10px 14px; font-size: 14px; margin: 0; border-radius: 12px; }
+
+    .icon-btn { background: var(--surface-2); border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); flex-shrink: 0; padding: 0; margin: 0; transition: .2s; }
+    .icon-btn:active { transform: scale(.92); }
+    .icon-btn.active { background: var(--grad); border-color: transparent; }
+    .icon-btn svg { width: 20px; height: 20px; }
+
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+    .error-text { color: var(--danger); font-size: 14px; margin: 8px 0 0; font-weight: 500; }
+
+    /* ---------- авторизация ---------- */
+    .auth-logo { width: 64px; height: 64px; margin: 8px auto 16px; border-radius: 20px; background: var(--grad); display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 12px 32px rgba(139,92,246,0.45); }
+    #auth-section { margin-top: 8vh; padding: 28px 22px; }
+
+    /* ---------- профиль ---------- */
+    .profile-header { display: flex; align-items: center; gap: 14px; padding: 8px 0 18px; }
+    .avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--grad); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 21px; text-transform: uppercase; box-shadow: 0 6px 20px rgba(139,92,246,0.45); cursor: pointer; flex-shrink: 0; }
+    .profile-info { min-width: 0; flex: 1; }
+    .profile-info h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.3px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .profile-info h1 span { opacity: .5; font-size: 14px; }
+    .profile-sub { font-size: 13px; color: var(--muted); }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+    .stat { padding: 14px 10px; text-align: center; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); }
+    .stat b { display: block; font-size: 26px; font-weight: 800; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; line-height: 1.1; }
+    .stat small { font-size: 12px; color: var(--muted); }
+
+    .random-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 20px; margin-bottom: 16px; border-radius: 22px; background: linear-gradient(135deg, rgba(124,58,237,0.28), rgba(236,72,153,0.16)); border: 1px solid rgba(168,85,247,0.35); }
+    .random-card h3 { margin: 0 0 2px; font-size: 17px; font-weight: 800; }
+    .random-card p { margin: 0; font-size: 13px; color: #b9b3d1; }
+
+    .section-title { display: flex; justify-content: space-between; align-items: center; margin: 0 0 14px; font-size: 18px; font-weight: 800; }
+    .add-toggle { cursor: pointer; }
+    .add-form { display: none; margin-top: 16px; }
+    .add-form.open { display: block; }
+    .chev { transition: .25s; color: var(--muted); }
+    .add-toggle.open .chev { transform: rotate(180deg); }
+
+    .file-upload { display: block; width: 100%; padding: 14px; border: 1.5px dashed rgba(255,255,255,0.18); border-radius: 14px; text-align: center; cursor: pointer; color: var(--muted); transition: .2s; margin-bottom: 12px; font-size: 14px; }
     .file-upload input[type="file"] { display: none; }
 
-    .btn { display: inline-flex; justify-content: center; align-items: center; padding: 14px 20px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; margin-bottom: 12px; color: inherit; font-family: inherit; }
-    .btn:active { transform: scale(0.98); }
-    .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3); }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-secondary { background: #27272a; color: var(--text); }
-    .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
-    .btn-small { width: auto; padding: 10px 16px; font-size: 14px; margin: 0; border-radius: 10px; }
+    /* ---------- библиотека ---------- */
+    .filters { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; padding-bottom: 2px; }
+    .filters::-webkit-scrollbar { display: none; }
+    .chip { white-space: nowrap; padding: 8px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: .2s; }
+    .chip.active { background: var(--grad); border-color: transparent; color: #fff; box-shadow: 0 6px 18px rgba(139,92,246,0.35); }
 
-    .book-item { display: flex; gap: 16px; padding: 16px; background: var(--card); border-radius: 16px; margin-bottom: 12px; align-items: center; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
-    .book-item:hover { background: var(--card-hover); transform: translateY(-2px); }
-    .book-cover { width: 70px; height: 105px; border-radius: 8px; object-fit: cover; background: #27272a; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-    .book-info { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
-    .book-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; line-height: 1.3; }
-    .book-author { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+    .book-item { display: flex; gap: 14px; padding: 12px; margin-bottom: 10px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; transition: .2s; align-items: center; }
+    .book-item:active { transform: scale(.98); background: var(--surface-2); }
+    .book-cover { width: 64px; height: 96px; border-radius: 10px; object-fit: cover; background: linear-gradient(135deg,#2a2440,#171325); flex-shrink: 0; box-shadow: 0 8px 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+    .book-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+    .book-title { font-weight: 700; font-size: 16px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .book-author { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .meta-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .badge { display: inline-block; padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--surface-2); color: #cfcbe3; }
+    .badge-read { background: rgba(52,211,153,0.14); color: var(--ok); }
+    .badge-finished { background: rgba(168,85,247,0.18); color: #d8b4fe; }
+    .stars { color: var(--star); font-size: 14px; font-weight: 700; letter-spacing: 1px; }
+    .empty { color: var(--muted); text-align: center; padding: 28px 0; font-size: 14px; }
 
-    .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #27272a; color: #d4d4d8; width: fit-content; }
-    .badge-read { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-    .badge-finished { background: rgba(124, 58, 237, 0.15); color: #c084fc; }
-
-    /* ===== МОДАЛКА (как экран чата в мессенджере) ===== */
-    .modal { position: fixed; left: 0; right: 0; top: 0; height: 100%; height: 100dvh; background: var(--bg); z-index: 100; display: flex; justify-content: center; }
-    .modal-content { background: var(--bg); width: 100%; max-width: 600px; height: 100%; position: relative; overflow: hidden; }
+    /* ---------- ЭКРАН КНИГИ / ЧАТ ---------- */
+    .modal { position: fixed; left: 0; right: 0; top: 0; height: 100%; height: 100dvh; background: var(--bg); z-index: 100; display: flex; justify-content: center; overscroll-behavior: none; }
+    .modal-content { width: 100%; max-width: 600px; height: 100%; position: relative; overflow: hidden; background: var(--bg); }
     .modal-root { height: 100%; display: flex; flex-direction: column; }
 
-    /* Шапка */
-    .modal-header { padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); display: flex; gap: 10px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; }
-    .modal-header .head-cover { width: 34px; height: 50px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
-    .modal-header .head-text { flex: 1; min-width: 0; }
-    .modal-header h2 { margin: 0; font-size: 16px; line-height: 1.2; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .modal-header .head-author { color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .icon-btn { background: #27272a; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); flex-shrink: 0; padding: 0; margin: 0; }
-    .icon-btn.active { background: var(--primary); }
+    .modal-header { padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); display: flex; gap: 10px; align-items: center; background: rgba(18,15,30,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .head-cover { width: 36px; height: 52px; border-radius: 7px; object-fit: cover; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+    .head-text { flex: 1; min-width: 0; }
+    .head-text h2 { margin: 0; font-size: 16px; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .head-author { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Сворачиваемая панель "О книге" */
-    .info-panel { display: none; flex-shrink: 0; max-height: 45%; overflow-y: auto; padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--card); -webkit-overflow-scrolling: touch; }
-    .info-panel.open { display: block; }
-    .info-panel .desc-text { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px; white-space: pre-wrap; }
-    .info-panel label.lbl { font-weight: 600; font-size: 12px; margin-bottom: 6px; display: block; color: var(--text-muted); text-transform: uppercase; }
-    .info-panel select { margin-bottom: 12px; border: none; background: #000; padding: 12px 14px; }
+    .info-panel { display: none; flex-shrink: 0; max-height: 50%; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 14px; background: rgba(18,15,30,0.95); border-bottom: 1px solid var(--border); }
+    .info-panel.open { display: block; animation: rise .25s ease; }
+    .desc-text { font-size: 14px; color: #b9b3d1; line-height: 1.6; margin-bottom: 14px; white-space: pre-wrap; }
+    .lbl { font-weight: 700; font-size: 11px; margin-bottom: 6px; display: block; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
     .info-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    /* Главы */
-    .chapter-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--card); flex-shrink: 0; }
+    .chapter-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; flex-shrink: 0; background: rgba(12,10,22,0.9); border-bottom: 1px solid var(--border); }
     .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; flex: 1; -webkit-overflow-scrolling: touch; }
     .chapter-tabs::-webkit-scrollbar { display: none; }
-    .chapter-tab { white-space: nowrap; padding: 6px 14px; border-radius: 20px; background: #27272a; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
-    .chapter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
-    .chapter-bar .icon-btn { width: 32px; height: 32px; font-size: 16px; }
+    .chapter-tab { white-space: nowrap; padding: 6px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: .2s; }
+    .chapter-tab.active { background: var(--grad); border-color: transparent; color: #fff; }
+    .chapter-bar .icon-btn { width: 32px; height: 32px; }
+    .chapter-bar .icon-btn svg { width: 16px; height: 16px; }
 
-    /* Сообщения — единственная скроллящаяся зона */
-    .chat-messages { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--chat-bg); }
+    /* сообщения: единственная скроллящаяся зона; короткий чат прижат к низу */
+    .chat-messages {
+      flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+      padding: 14px 12px; display: flex; flex-direction: column; gap: 6px;
+      background: radial-gradient(60% 40% at 50% 0%, rgba(124,58,237,0.10), transparent 70%), #0a0813;
+    }
+    .chat-messages > :first-child { margin-top: auto; }
 
-    .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; align-self: flex-start; transition: transform 0.1s ease-out; touch-action: pan-y; flex-shrink: 0; }
+    .msg-wrapper { display: flex; flex-direction: column; max-width: 82%; align-self: flex-start; transition: transform .12s ease-out; touch-action: pan-y; flex-shrink: 0; animation: pop .2s ease; }
+    @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
     .msg-wrapper.my-msg { align-self: flex-end; }
     .msg-wrapper.swiping { transition: none; }
 
-    .msg-bubble { background: var(--msg-in); padding: 8px 12px; border-radius: 16px; border-bottom-left-radius: 4px; font-size: 15px; border: 1px solid var(--border); word-wrap: break-word; overflow-wrap: anywhere; white-space: pre-wrap; cursor: pointer; }
-    .msg-wrapper.my-msg .msg-bubble { background: var(--msg-out); border-color: var(--primary); border-bottom-left-radius: 16px; border-bottom-right-radius: 4px; color: white; }
+    .msg-bubble { padding: 8px 12px 6px; border-radius: 18px 18px 18px 6px; font-size: 15px; line-height: 1.4; background: #1c1830; border: 1px solid var(--border); word-wrap: break-word; overflow-wrap: anywhere; cursor: pointer; }
+    .msg-wrapper.my-msg .msg-bubble { background: linear-gradient(135deg, #7c3aed, #9d4edd); border-color: transparent; border-radius: 18px 18px 6px 18px; color: #fff; box-shadow: 0 6px 18px rgba(124,58,237,0.25); }
+    .msg-author { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+    .msg-text { white-space: pre-wrap; }
+    .msg-time { font-size: 10.5px; opacity: .55; text-align: right; margin-top: 2px; }
 
-    .msg-meta { font-size: 11px; color: var(--text-muted); margin: 0 4px 3px 4px; font-weight: 600; }
-    .msg-wrapper.my-msg .msg-meta { text-align: right; }
+    .reply-quote { background: rgba(0,0,0,0.25); border-left: 3px solid #e9d5ff; padding: 4px 8px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; color: #ddd6f3; white-space: normal; }
 
-    .msg-actions { display: none; gap: 6px; margin-top: 4px; }
+    .msg-actions { display: none; gap: 6px; margin-top: 5px; }
     .msg-wrapper.my-msg .msg-actions { justify-content: flex-end; }
     .msg-wrapper.show-actions .msg-actions { display: flex; }
-    .msg-actions button { background: #27272a; border: none; cursor: pointer; font-size: 14px; padding: 6px 10px; color: var(--text); border-radius: 8px; }
+    .msg-actions button { background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; font-size: 12px; font-weight: 600; padding: 6px 12px; color: var(--text); border-radius: 999px; font-family: inherit; }
+    .msg-actions button[data-action="delete"] { color: #fb7185; }
 
-    .reply-quote { background: rgba(0,0,0,0.25); border-left: 3px solid var(--accent); padding: 4px 8px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; color: #d4d4d8; white-space: normal; }
-
-    .spoiler { background: #3f3f46; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; transition: 0.2s; }
+    .spoiler { background: #3b3558; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; transition: .2s; }
     .spoiler.revealed { background: transparent; color: inherit; }
-    .empty-chat { color: var(--text-muted); text-align: center; font-size: 14px; margin: auto; }
+    .empty-chat { color: var(--muted); text-align: center; font-size: 14px; margin: auto; }
 
-    /* Поле ввода — всегда внизу, над клавиатурой */
-    .chat-input-area { flex-shrink: 0; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--border); }
-    .reply-preview { display: none; background: #1a1a1e; border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 8px; font-size: 13px; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .chat-input-area { flex-shrink: 0; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); background: rgba(18,15,30,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border); }
+    .reply-preview { display: none; background: var(--surface); border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 10px; font-size: 13px; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
     .reply-preview span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-    .reply-preview button { background: none; border: none; color: var(--text); font-size: 16px; cursor: pointer; flex-shrink: 0; }
+    .reply-preview button { background: none; border: none; color: var(--text); cursor: pointer; flex-shrink: 0; display: flex; padding: 2px; }
+    .reply-preview svg { width: 16px; height: 16px; }
     .input-row { display: flex; gap: 8px; align-items: center; }
-    .input-row input { margin-bottom: 0; border-radius: 22px; padding: 11px 16px; background: #000; flex: 1; min-width: 0; }
+    .input-row input { margin-bottom: 0; border-radius: 999px; padding: 12px 18px; flex: 1; min-width: 0; background: rgba(0,0,0,0.4); }
     .input-row .icon-btn { width: 44px; height: 44px; }
-    .input-row .send-btn { background: var(--primary); }
+    .send-btn { background: var(--grad) !important; border: none !important; box-shadow: 0 6px 18px rgba(139,92,246,0.4); }
 
-    .system-alert {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      background: linear-gradient(135deg, #7c3aed, #c084fc); color: white;
-      padding: 16px 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
-      z-index: 1000; display: flex; justify-content: space-between; align-items: center; gap: 16px;
-      width: calc(100% - 40px); max-width: 500px; animation: slideDown 0.4s ease;
-    }
-    @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    /* ---------- уведомление ---------- */
+    .system-alert { position: fixed; top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: var(--grad); color: #fff; padding: 14px 16px 14px 18px; border-radius: 18px; box-shadow: 0 12px 34px rgba(124,58,237,0.5); z-index: 1000; display: flex; justify-content: space-between; align-items: center; gap: 14px; width: calc(100% - 32px); max-width: 500px; animation: slideDown .4s ease; }
+    @keyframes slideDown { from { transform: translate(-50%, -120%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
     .system-alert span { font-size: 15px; font-weight: 500; line-height: 1.3; }
-    .system-alert button { background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .system-alert button { background: rgba(255,255,255,0.22); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; }
+    .system-alert svg { width: 16px; height: 16px; }
 
-    .hidden { display: none !important; }
-    .flex-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .text-center { text-align: center; }
-    .error-text { color: var(--danger); font-size: 14px; margin-top: 8px; font-weight: 500; }
-
-    /* Телефон: высоту берём из visualViewport (подстраивается под клавиатуру) */
-    @media (max-width: 599px) {
-      .modal { top: var(--app-top, 0px); height: var(--app-h, 100dvh); }
-    }
+    @media (max-width: 599px) { .modal { top: var(--app-top, 0px); height: var(--app-h, 100dvh); } }
     @media (min-width: 600px) {
-      .modal { align-items: center; }
-      .modal-content { height: 90vh; border-radius: 24px; border: 1px solid var(--border); }
+      .modal { align-items: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); }
+      .modal-content { height: 90vh; border-radius: 26px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+      body.modal-open .container { visibility: visible; }
       .msg-wrapper:hover .msg-actions { display: flex; }
     }
   </style>
@@ -150,7 +204,7 @@
 <body>
   <div id="global-alert" class="system-alert hidden">
     <span id="alert-text"></span>
-    <button onclick="dismissAlert()">✕</button>
+    <button onclick="dismissAlert()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
   </div>
 
   <div class="container">
@@ -158,21 +212,18 @@
     <div id="profile-header" class="profile-header hidden">
       <div class="avatar" id="user-avatar" onclick="changeName()">U</div>
       <div class="profile-info">
-        <h1 id="user-name" onclick="changeName()">User <span>✏️</span></h1>
-        <div class="profile-stats">
-          <span>📌 <span id="stat-want">0</span></span>
-          <span>📖 <span id="stat-read">0</span></span>
-          <span>✅ <span id="stat-fin">0</span></span>
-        </div>
+        <h1 id="user-name" onclick="changeName()">User</h1>
+        <div class="profile-sub">Мой книжный трекер</div>
       </div>
-      <button class="btn btn-secondary btn-small" style="margin-left: auto;" onclick="signOut()">Выйти</button>
+      <button class="btn btn-secondary btn-small" onclick="signOut()">Выйти</button>
     </div>
 
-    <div id="auth-section" class="card">
-      <h2 class="text-center" style="margin-top:0; font-weight: 800; font-size: 28px;">С возвращением</h2>
-      <p class="text-center" style="color:var(--text-muted); font-size:15px; margin-bottom:24px;">Войдите по ID или создайте новый</p>
-      <input id="login-id" placeholder="Ваш ID (логин)" />
-      <input id="login-password" type="password" placeholder="Пароль (мин. 6 символов)" />
+    <div id="auth-section" class="glass card">
+      <div class="auth-logo">📚</div>
+      <h2 class="text-center" style="margin:0 0 4px; font-weight:800; font-size:26px;">С возвращением</h2>
+      <p class="text-center" style="color:var(--muted); font-size:15px; margin:0 0 22px;">Войдите по ID или создайте новый</p>
+      <input id="login-id" placeholder="Ваш ID (логин)" autocapitalize="none" autocomplete="username" />
+      <input id="login-password" type="password" placeholder="Пароль (мин. 6 символов)" autocomplete="current-password" />
       <button class="btn btn-primary" onclick="signIn()">Войти</button>
       <button class="btn btn-secondary" onclick="signUp()">Создать аккаунт</button>
       <p id="auth-msg" class="error-text text-center"></p>
@@ -180,37 +231,52 @@
 
     <div id="main-section" class="hidden">
 
-      <div id="owner-panel" class="card hidden" style="border-color: var(--accent); background: linear-gradient(to right, #121214, rgba(192, 132, 252, 0.1));">
-        <h3 style="margin-top:0; font-size: 16px; color: var(--accent);">👑 Панель Владельца</h3>
-        <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Отправить системное уведомление (увидят все при входе):</p>
-        <textarea id="alert-input" placeholder="Текст уведомления..." rows="2" style="margin-bottom:8px; background:#000;"></textarea>
-        <button class="btn btn-primary" onclick="sendSystemAlert()">Отправить</button>
+      <div class="stats">
+        <div class="stat"><b id="stat-want">0</b><small>Хочу</small></div>
+        <div class="stat"><b id="stat-read">0</b><small>Читаю</small></div>
+        <div class="stat"><b id="stat-fin">0</b><small>Прочитано</small></div>
       </div>
 
-      <div class="card" style="display:flex; justify-content:space-between; align-items:center; background: linear-gradient(to right, #121214, #1a1a1e); border-color: #3f3f46;">
+      <div id="owner-panel" class="glass card hidden" style="border-color: rgba(217,70,239,0.4);">
+        <h3 style="margin:0 0 6px; font-size:16px; color: var(--accent);">👑 Панель владельца</h3>
+        <p style="font-size:13px; color:var(--muted); margin:0 0 12px;">Системное уведомление (увидят все при входе):</p>
+        <textarea id="alert-input" placeholder="Текст уведомления..." rows="2"></textarea>
+        <button class="btn btn-primary" style="margin-bottom:0" onclick="sendSystemAlert()">Отправить</button>
+      </div>
+
+      <div class="random-card">
         <div>
-          <h3 style="margin:0 0 4px 0; font-size:16px; font-weight:800;">Что почитать?</h3>
-          <p style="margin:0; font-size:13px; color:var(--text-muted);">Случайная книга из списка "Хочу"</p>
+          <h3>Что почитать?</h3>
+          <p>Случайная книга из «Хочу»</p>
         </div>
-        <button class="btn btn-primary btn-small" style="padding: 12px 20px;" onclick="randomizeBook(this)">🎲 Крутить</button>
+        <button class="btn btn-primary btn-small" onclick="randomizeBook(this)">🎲 Крутить</button>
       </div>
 
-      <div class="card">
-        <h3 style="margin-top:0; font-size: 18px;">➕ Добавить книгу</h3>
-        <input id="add-title" placeholder="Название книги" />
-        <input id="add-author" placeholder="Автор" />
-        <textarea id="add-desc" placeholder="Описание книги (необязательно)" rows="3" style="resize:none;"></textarea>
-
-        <label class="file-upload" id="file-label">
-          <span id="file-text">📸 Выбрать обложку с устройства</span>
-          <input type="file" id="add-cover-file" accept="image/*" onchange="updateFileName(this)" />
-        </label>
-
-        <button class="btn btn-primary" onclick="addBookManually()">Добавить в библиотеку</button>
+      <div class="glass card">
+        <div class="section-title add-toggle" id="add-toggle" onclick="toggleAdd()" style="margin:0;">
+          <span>➕ Добавить книгу</span>
+          <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="add-form" id="add-form">
+          <input id="add-title" placeholder="Название книги" />
+          <input id="add-author" placeholder="Автор" />
+          <textarea id="add-desc" placeholder="Описание (необязательно)" rows="3" style="resize:none;"></textarea>
+          <label class="file-upload" id="file-label">
+            <span id="file-text">📸 Выбрать обложку с устройства</span>
+            <input type="file" id="add-cover-file" accept="image/*" onchange="updateFileName(this)" />
+          </label>
+          <button class="btn btn-primary" style="margin-bottom:0" onclick="addBookManually()">Добавить в библиотеку</button>
+        </div>
       </div>
 
-      <div class="card" style="margin-top:20px;">
-        <h3 style="margin-top:0; font-size: 18px;">📖 Библиотека</h3>
+      <div class="glass card">
+        <h3 class="section-title">📖 Библиотека</h3>
+        <div class="filters" id="filters">
+          <div class="chip active" data-f="all">Все</div>
+          <div class="chip" data-f="want_to_read">Хочу</div>
+          <div class="chip" data-f="reading">Читаю</div>
+          <div class="chip" data-f="finished">Прочитано</div>
+        </div>
         <div id="all-books"></div>
       </div>
     </div>
@@ -229,6 +295,15 @@
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    const ICON = {
+      send: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>',
+      back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+      close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+      info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+      plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+      eyeoff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>'
+    };
+
     let currentUser = null;
     let currentUserName = '';
     let currentBookId = null;
@@ -238,8 +313,10 @@
     let replyToMessage = null;
     let currentAlertId = null;
     let messagesCache = {};
+    let libBooks = [], libUserMap = {}, libFilter = 'all';
+    let spoilerOn = false;
 
-    /* ===== Подгонка высоты под клавиатуру (телефон) ===== */
+    /* ===== Высота модалки = видимая область (над клавиатурой) ===== */
     function syncViewport() {
       const vv = window.visualViewport;
       if (!vv) return;
@@ -247,7 +324,6 @@
       root.style.setProperty('--app-h', vv.height + 'px');
       root.style.setProperty('--app-top', vv.offsetTop + 'px');
       if (currentBookId) {
-        // iOS любит сдвигать страницу при фокусе — возвращаем на место
         if (window.scrollY !== 0) window.scrollTo(0, 0);
         const area = document.getElementById('chat-area');
         if (area && document.activeElement && document.activeElement.id === 'chat-input') {
@@ -261,21 +337,25 @@
     }
     syncViewport();
 
+    // Запрещаем "резиновый" скролл страницы за пределами скроллящихся зон модалки
+    document.getElementById('book-modal').addEventListener('touchmove', e => {
+      if (!e.target.closest('.chat-messages, .info-panel, .chapter-tabs')) e.preventDefault();
+    }, { passive: false });
+
     function isValidLogin(login) { return /^[a-zA-Z0-9_-]{3,30}$/.test(login); }
     function loginToEmail(login) { return login + '@' + FAKE_DOMAIN; }
-
     function emailToLogin(email) {
       if (!email) return '';
-      if (email.endsWith('@' + FAKE_DOMAIN)) {
-        return email.slice(0, -(FAKE_DOMAIN.length + 1));
-      }
+      if (email.endsWith('@' + FAKE_DOMAIN)) return email.slice(0, -(FAKE_DOMAIN.length + 1));
       return email;
     }
-
-    function formatTime(isoString) {
-      if (!isoString) return '';
-      const date = new Date(isoString);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    function formatTime(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    function nameColor(name) {
+      let h = 0; for (const c of String(name)) h = (h * 31 + c.charCodeAt(0)) % 360;
+      return `hsl(${h}, 75%, 72%)`;
     }
 
     async function changeName() {
@@ -283,58 +363,51 @@
       if (newName === null) return;
       const trimmed = newName.trim();
       if (!trimmed) return alert('Имя не может быть пустым');
-
       const { error } = await sb.auth.updateUser({ data: { display_name: trimmed } });
       if (error) return alert('Ошибка сохранения: ' + error.message);
-
       currentUserName = trimmed;
       document.getElementById('user-name').innerHTML = `${escapeHtml(trimmed)} <span>✏️</span>`;
       document.getElementById('user-avatar').textContent = trimmed.charAt(0);
-
       if (currentBookId) loadMessages(currentBookId, currentChapter);
+    }
+
+    function toggleAdd() {
+      document.getElementById('add-form').classList.toggle('open');
+      document.getElementById('add-toggle').classList.toggle('open');
     }
 
     function updateFileName(input) {
       const label = document.getElementById('file-text');
-      const labelBox = document.getElementById('file-label');
+      const box = document.getElementById('file-label');
       if (input.files && input.files[0]) {
         selectedFile = input.files[0];
         label.textContent = '✅ ' + selectedFile.name;
-        labelBox.style.borderColor = '#7c3aed';
-        labelBox.style.color = '#c084fc';
+        box.style.borderColor = '#8b5cf6'; box.style.color = '#c4b5fd';
       } else {
         selectedFile = null;
         label.textContent = '📸 Выбрать обложку с устройства';
-        labelBox.style.borderColor = 'var(--border)';
-        labelBox.style.color = 'var(--text-muted)';
+        box.style.borderColor = ''; box.style.color = '';
       }
     }
 
     async function uploadCover(file) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-
+      const ext = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
       const { error } = await sb.storage.from('covers').upload(fileName, file);
       if (error) throw error;
-
-      const { data: urlData } = sb.storage.from('covers').getPublicUrl(fileName);
-      return urlData.publicUrl;
+      const { data } = sb.storage.from('covers').getPublicUrl(fileName);
+      return data.publicUrl;
     }
 
     async function signUp() {
       const login = document.getElementById('login-id').value.trim();
       const password = document.getElementById('login-password').value;
       const msg = document.getElementById('auth-msg');
+      msg.style.color = '';
       if (login.toLowerCase() === 'admin' || login.toLowerCase() === 'owner') { msg.textContent = 'Этот логин занят.'; return; }
-      if (!isValidLogin(login)) { msg.textContent = 'ID: 3–30 символов'; return; }
+      if (!isValidLogin(login)) { msg.textContent = 'ID: 3–30 символов (латиница, цифры, _ -)'; return; }
       if (password.length < 6) { msg.textContent = 'Пароль от 6 символов'; return; }
-
-      const { error } = await sb.auth.signUp({
-        email: loginToEmail(login),
-        password,
-        options: { data: { display_name: login } }
-      });
-
+      const { error } = await sb.auth.signUp({ email: loginToEmail(login), password, options: { data: { display_name: login } } });
       if (error) { msg.textContent = error.message; return; }
       msg.style.color = '#34d399'; msg.textContent = 'Успех! Заходим...';
       setTimeout(checkSession, 800);
@@ -344,19 +417,18 @@
       const login = document.getElementById('login-id').value.trim();
       const password = document.getElementById('login-password').value;
       const msg = document.getElementById('auth-msg');
+      msg.style.color = '';
 
       if (login.toLowerCase() === 'owner') {
         const { error } = await sb.auth.signInWithPassword({ email: loginToEmail('owner'), password });
         if (error) { msg.textContent = 'Неверный пароль владельца.'; return; }
         msg.textContent = ''; checkSession(); return;
       }
-
       if (login.toLowerCase() === 'admin') {
         const { error } = await sb.auth.signInWithPassword({ email: loginToEmail('admin'), password });
         if (error) { msg.textContent = 'Неверный пароль админа.'; return; }
         msg.textContent = ''; checkSession(); return;
       }
-
       if (!isValidLogin(login)) { msg.textContent = 'Некорректный ID'; return; }
       const { error } = await sb.auth.signInWithPassword({ email: loginToEmail(login), password });
       if (error) { msg.textContent = 'Неверный ID или пароль'; return; }
@@ -379,15 +451,9 @@
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('main-section').classList.remove('hidden');
         document.getElementById('profile-header').classList.remove('hidden');
-
         document.getElementById('user-name').innerHTML = `${escapeHtml(currentUserName)} <span>✏️</span>`;
         document.getElementById('user-avatar').textContent = currentUserName.charAt(0);
-
-        if (loginName === 'owner') {
-          document.getElementById('owner-panel').classList.remove('hidden');
-        } else {
-          document.getElementById('owner-panel').classList.add('hidden');
-        }
+        document.getElementById('owner-panel').classList.toggle('hidden', loginName !== 'owner');
 
         checkUnreadAlerts();
         loadAllBooks();
@@ -406,14 +472,12 @@
 
     async function checkUnreadAlerts() {
       const { data } = await sb.from('system_alerts').select('*').order('created_at', { ascending: false }).limit(1);
-
       if (data && data.length > 0) {
-        const latestAlert = data[0];
-        const readAlerts = JSON.parse(localStorage.getItem('read_alerts') || '[]');
-
-        if (!readAlerts.includes(latestAlert.id)) {
-          currentAlertId = latestAlert.id;
-          document.getElementById('alert-text').textContent = latestAlert.content;
+        const latest = data[0];
+        const read = JSON.parse(localStorage.getItem('read_alerts') || '[]');
+        if (!read.includes(latest.id)) {
+          currentAlertId = latest.id;
+          document.getElementById('alert-text').textContent = latest.content;
           document.getElementById('global-alert').classList.remove('hidden');
         }
       }
@@ -422,11 +486,8 @@
     function dismissAlert() {
       document.getElementById('global-alert').classList.add('hidden');
       if (currentAlertId) {
-        let readAlerts = JSON.parse(localStorage.getItem('read_alerts') || '[]');
-        if (!readAlerts.includes(currentAlertId)) {
-          readAlerts.push(currentAlertId);
-          localStorage.setItem('read_alerts', JSON.stringify(readAlerts));
-        }
+        const read = JSON.parse(localStorage.getItem('read_alerts') || '[]');
+        if (!read.includes(currentAlertId)) { read.push(currentAlertId); localStorage.setItem('read_alerts', JSON.stringify(read)); }
       }
     }
 
@@ -434,7 +495,6 @@
       const input = document.getElementById('alert-input');
       const text = input.value.trim();
       if (!text) return;
-
       await sb.from('system_alerts').insert({ content: text });
       input.value = '';
       alert('Уведомление отправлено!');
@@ -444,7 +504,6 @@
       const title = document.getElementById('add-title').value.trim();
       const author = document.getElementById('add-author').value.trim();
       const description = document.getElementById('add-desc').value.trim();
-
       if (!title) return alert('Введите название книги');
 
       const btn = document.querySelector('button[onclick="addBookManually()"]');
@@ -454,25 +513,18 @@
       try {
         let coverUrl = '';
         if (selectedFile) coverUrl = await uploadCover(selectedFile);
-
         const google_id = 'manual_' + Date.now();
-
         const { data, error } = await sb.from('books').insert({
-          google_id, title, authors: author || 'Автор неизвестен', thumbnail: coverUrl, description: description
+          google_id, title, authors: author || 'Автор неизвестен', thumbnail: coverUrl, description
         }).select('id').single();
-
         if (error) throw error;
 
-        await sb.from('user_books').upsert({
-          user_id: currentUser.id, book_id: data.id, status: 'want_to_read'
-        }, { onConflict: 'user_id,book_id', ignoreDuplicates: true });
+        await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: data.id, status: 'want_to_read' }, { onConflict: 'user_id,book_id', ignoreDuplicates: true });
 
-        document.getElementById('add-title').value = '';
-        document.getElementById('add-author').value = '';
-        document.getElementById('add-desc').value = '';
+        ['add-title', 'add-author', 'add-desc'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('add-cover-file').value = '';
         updateFileName(document.getElementById('add-cover-file'));
-
+        toggleAdd();
         loadAllBooks();
       } catch (err) {
         alert('Ошибка: ' + err.message);
@@ -483,23 +535,30 @@
 
     async function randomizeBook(btn) {
       const { data: myBooks, error } = await sb.from('user_books').select('book_id').eq('user_id', currentUser.id).eq('status', 'want_to_read');
-
       if (error) return alert('Ошибка базы: ' + error.message);
       if (!myBooks || myBooks.length === 0) return alert('В списке "Хочу" пусто!');
-
-      const randomBookId = myBooks[Math.floor(Math.random() * myBooks.length)].book_id;
-
+      const id = myBooks[Math.floor(Math.random() * myBooks.length)].book_id;
       btn.textContent = '🎲 Ищем...'; btn.disabled = true;
-      setTimeout(() => { openBook(randomBookId); btn.textContent = '🎲 Крутить'; btn.disabled = false; }, 600);
+      setTimeout(() => { openBook(id); btn.textContent = '🎲 Крутить'; btn.disabled = false; }, 600);
     }
+
+    /* ===== Библиотека ===== */
+    document.getElementById('filters').addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      libFilter = chip.dataset.f;
+      document.querySelectorAll('#filters .chip').forEach(c => c.classList.toggle('active', c === chip));
+      renderLibrary();
+    });
 
     async function loadAllBooks() {
       const { data: books } = await sb.from('books').select('*').order('created_at', { ascending: false });
       if (!books) return;
-
       const { data: userBooks } = await sb.from('user_books').select('*').eq('user_id', currentUser.id);
-      const userMap = {};
-      (userBooks || []).forEach(ub => { userMap[ub.book_id] = ub; });
+
+      libBooks = books;
+      libUserMap = {};
+      (userBooks || []).forEach(ub => { libUserMap[ub.book_id] = ub; });
 
       let want = 0, read = 0, fin = 0;
       (userBooks || []).forEach(ub => {
@@ -511,39 +570,55 @@
       document.getElementById('stat-read').textContent = read;
       document.getElementById('stat-fin').textContent = fin;
 
+      renderLibrary();
+    }
+
+    function renderLibrary() {
       const container = document.getElementById('all-books');
-      if (books.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 20px 0;">Тут пока пусто. Добавь первую книгу!</p>'; return;
+      const list = libBooks.filter(b => libFilter === 'all' || libUserMap[b.id]?.status === libFilter);
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="empty">${libBooks.length === 0 ? 'Тут пока пусто. Добавь первую книгу!' : 'В этой категории пока ничего нет'}</div>`;
+        return;
       }
 
-      container.innerHTML = books.map(book => {
-        const ub = userMap[book.id];
+      container.innerHTML = list.map(book => {
+        const ub = libUserMap[book.id];
         const status = ub?.status || null;
-        const rating = ub?.rating ? ' ' + '★'.repeat(ub.rating) : '';
-        let statusHtml = '<span class="badge">Не в списке</span>';
-        if (status === 'reading') statusHtml = '<span class="badge badge-read">📖 Читаю</span>';
-        if (status === 'finished') statusHtml = '<span class="badge badge-finished">✅ Прочитано</span>';
-        if (status === 'want_to_read') statusHtml = '<span class="badge">📌 Хочу</span>';
-        if (status === 'paused') statusHtml = '<span class="badge">⏸ На паузе</span>';
-        if (status === 'dropped') statusHtml = '<span class="badge">🚫 Брошено</span>';
+        const stars = ub?.rating ? '★'.repeat(ub.rating) : '';
+        let badge = '<span class="badge">Не в списке</span>';
+        if (status === 'want_to_read') badge = '<span class="badge">📌 Хочу</span>';
+        if (status === 'reading') badge = '<span class="badge badge-read">📖 Читаю</span>';
+        if (status === 'finished') badge = '<span class="badge badge-finished">✅ Прочитано</span>';
+        if (status === 'paused') badge = '<span class="badge">⏸ На паузе</span>';
+        if (status === 'dropped') badge = '<span class="badge">🚫 Брошено</span>';
+
+        const cover = book.thumbnail
+          ? `<img src="${escapeHtml(book.thumbnail)}" class="book-cover" onerror="this.outerHTML='<div class=\\'book-cover\\'>📕</div>'">`
+          : `<div class="book-cover">📕</div>`;
 
         return `
           <div class="book-item" onclick="openBook(${book.id})">
-            ${book.thumbnail ? `<img src="${escapeHtml(book.thumbnail)}" class="book-cover" onerror="this.style.display='none';">` : `<div class="book-cover" style="display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:10px; text-align:center;">Нет</div>`}
+            ${cover}
             <div class="book-info">
-              <div><div class="book-title">${escapeHtml(book.title)}</div><div class="book-author">${escapeHtml(book.authors || '')}</div></div>
-              <div class="flex-row">${statusHtml} <span style="color:#fbbf24; font-size:14px; font-weight:600;">${rating}</span></div>
+              <div>
+                <div class="book-title">${escapeHtml(book.title)}</div>
+                <div class="book-author">${escapeHtml(book.authors || '')}</div>
+              </div>
+              <div class="meta-row">${badge}<span class="stars">${stars}</span></div>
             </div>
           </div>`;
       }).join('');
     }
 
+    /* ===== Экран книги ===== */
     async function openBook(bookId) {
       currentBookId = bookId;
       currentChapter = 'Общий чат';
       messagesCache = {};
+      document.body.classList.add('modal-open');
       document.getElementById('book-modal').classList.remove('hidden');
-      document.getElementById('modal-content-root').innerHTML = '<p style="padding:20px; text-align:center;">Загрузка...</p>';
+      document.getElementById('modal-content-root').innerHTML = '<p style="padding:30px; text-align:center; color:var(--muted)">Загрузка...</p>';
       syncViewport();
 
       const { data: book } = await sb.from('books').select('*').eq('id', bookId).single();
@@ -555,7 +630,7 @@
 
       let actionBlock = '';
       if (!status) {
-        actionBlock = `<button class="btn btn-primary" onclick="addToMyList(${book.id})" style="margin-bottom:12px;">+ Добавить в мой список</button>`;
+        actionBlock = `<button class="btn btn-primary" onclick="addToMyList(${book.id})">+ Добавить в мой список</button>`;
       } else {
         actionBlock = `
           <label class="lbl">Статус</label>
@@ -570,23 +645,21 @@
           <select id="rating-select" onchange="updateRating()">
             <option value="0">Без оценки</option>
             ${[1,2,3,4,5].map(n => `<option value="${n}" ${rating === n ? 'selected' : ''}>${'★'.repeat(n)}</option>`).join('')}
-          </select>
-        `;
+          </select>`;
       }
 
-      const descHtml = (book.description && book.description.trim() !== '')
-        ? `<div class="desc-text">${escapeHtml(book.description)}</div>`
-        : '';
+      const descHtml = (book.description && book.description.trim())
+        ? `<div class="desc-text">${escapeHtml(book.description)}</div>` : '';
 
       document.getElementById('modal-content-root').innerHTML = `
         <div class="modal-header">
+          <button class="icon-btn" onclick="closeModal()" title="Назад">${ICON.back}</button>
           ${book.thumbnail ? `<img class="head-cover" src="${escapeHtml(book.thumbnail)}" onerror="this.style.display='none'">` : ''}
           <div class="head-text">
             <h2>${escapeHtml(book.title)}</h2>
             <div class="head-author">${escapeHtml(book.authors || '')}</div>
           </div>
-          <button class="icon-btn" id="info-btn" onclick="toggleInfo()" title="О книге">ℹ️</button>
-          <button class="icon-btn" onclick="closeModal()">✕</button>
+          <button class="icon-btn" id="info-btn" onclick="toggleInfo()" title="О книге">${ICON.info}</button>
         </div>
 
         <div class="info-panel" id="info-panel">
@@ -601,7 +674,7 @@
 
         <div class="chapter-bar">
           <div class="chapter-tabs" id="chapter-tabs"></div>
-          <button class="icon-btn" onclick="addChapter()" title="Новая глава">+</button>
+          <button class="icon-btn" onclick="addChapter()" title="Новая глава">${ICON.plus}</button>
         </div>
 
         <div class="chat-messages" id="chat-area"></div>
@@ -609,33 +682,29 @@
         <div class="chat-input-area">
           <div class="reply-preview" id="reply-preview">
             <span id="reply-text"></span>
-            <button onclick="cancelReply()">✕</button>
+            <button onclick="cancelReply()">${ICON.close}</button>
           </div>
           <div class="input-row">
-            <button class="icon-btn" id="spoiler-btn" onpointerdown="event.preventDefault()" onclick="toggleSpoiler()" title="Под спойлер">🙈</button>
+            <button class="icon-btn" id="spoiler-btn" onpointerdown="event.preventDefault()" onclick="toggleSpoiler()" title="Под спойлер">${ICON.eyeoff}</button>
             <input id="chat-input" placeholder="Сообщение..." enterkeyhint="send" autocomplete="off" onkeydown="if(event.key==='Enter')sendMessage()" onfocus="onChatFocus()" />
-            <button class="icon-btn send-btn" onpointerdown="event.preventDefault()" onclick="sendMessage()">➤</button>
+            <button class="icon-btn send-btn" onpointerdown="event.preventDefault()" onclick="sendMessage()">${ICON.send}</button>
           </div>
         </div>
       `;
 
       document.getElementById('chat-area').addEventListener('click', onChatClick);
-
       await loadChapters();
       setupChat(bookId, currentChapter);
     }
 
-    let spoilerOn = false;
     function toggleSpoiler() {
       spoilerOn = !spoilerOn;
-      document.getElementById('spoiler-btn').classList.toggle('active', spoilerOn);
+      document.getElementById('spoiler-btn')?.classList.toggle('active', spoilerOn);
     }
 
     function toggleInfo() {
-      const panel = document.getElementById('info-panel');
-      const btn = document.getElementById('info-btn');
-      const open = panel.classList.toggle('open');
-      btn.classList.toggle('active', open);
+      const open = document.getElementById('info-panel').classList.toggle('open');
+      document.getElementById('info-btn').classList.toggle('active', open);
     }
 
     function onChatFocus() {
@@ -645,13 +714,9 @@
     async function editBookInfo() {
       const { data: book } = await sb.from('books').select('*').eq('id', currentBookId).single();
       if (!book) return;
-
-      const newTitle = prompt('Изменить название:', book.title);
-      if (newTitle === null) return;
-      const newAuthor = prompt('Изменить автора:', book.authors || '');
-      if (newAuthor === null) return;
-      const newDesc = prompt('Добавить/изменить описание:', book.description || '');
-      if (newDesc === null) return;
+      const newTitle = prompt('Изменить название:', book.title); if (newTitle === null) return;
+      const newAuthor = prompt('Изменить автора:', book.authors || ''); if (newAuthor === null) return;
+      const newDesc = prompt('Добавить/изменить описание:', book.description || ''); if (newDesc === null) return;
 
       const { error } = await sb.from('books').update({
         title: newTitle.trim() || book.title,
@@ -660,11 +725,7 @@
       }).eq('id', currentBookId);
 
       if (error) alert('Ошибка: ' + error.message);
-      else {
-        alert('Книга обновлена!');
-        openBook(currentBookId);
-        loadAllBooks();
-      }
+      else { alert('Книга обновлена!'); openBook(currentBookId); loadAllBooks(); }
     }
 
     async function addToMyList(bookId) {
@@ -678,49 +739,42 @@
       const chapters = new Set(['Общий чат']);
       (msgs || []).forEach(m => { if (m.chapter) chapters.add(m.chapter); });
 
-      const tabsContainer = document.getElementById('chapter-tabs');
-      if (!tabsContainer) return;
-      tabsContainer.innerHTML = Array.from(chapters).map(chap => `
-        <div class="chapter-tab ${chap === currentChapter ? 'active' : ''}" data-chapter="${escapeHtml(chap).replace(/"/g, '&quot;')}">${escapeHtml(chap)}</div>
-      `).join('');
-
-      tabsContainer.onclick = e => {
-        const tab = e.target.closest('.chapter-tab');
-        if (tab) switchChapter(tab.dataset.chapter);
-      };
-
-      const active = tabsContainer.querySelector('.active');
+      const tabs = document.getElementById('chapter-tabs');
+      if (!tabs) return;
+      tabs.innerHTML = Array.from(chapters).map(chap =>
+        `<div class="chapter-tab ${chap === currentChapter ? 'active' : ''}" data-chapter="${escapeHtml(chap).replace(/"/g, '&quot;')}">${escapeHtml(chap)}</div>`
+      ).join('');
+      tabs.onclick = e => { const t = e.target.closest('.chapter-tab'); if (t) switchChapter(t.dataset.chapter); };
+      const active = tabs.querySelector('.active');
       if (active) active.scrollIntoView({ inline: 'center', block: 'nearest' });
     }
 
     async function addChapter() {
-      const chapName = (prompt('Название новой главы:') || '').trim();
-      if (!chapName) return;
-
+      const name = (prompt('Название новой главы:') || '').trim();
+      if (!name) return;
       await sb.from('messages').insert({
         book_id: currentBookId, user_id: currentUser.id, user_email: currentUserName,
-        chapter: chapName, content: `Создана глава "${chapName}"`, is_spoiler: false
+        chapter: name, content: `Создана глава "${name}"`, is_spoiler: false
       });
-
-      await switchChapter(chapName);
+      await switchChapter(name);
     }
 
-    async function switchChapter(chapName) {
-      currentChapter = chapName;
+    async function switchChapter(name) {
+      currentChapter = name;
       cancelReply();
       await loadChapters();
-      setupChat(currentBookId, chapName);
+      setupChat(currentBookId, name);
     }
 
     async function updateStatus() {
-      const newStatus = document.getElementById('status-select').value;
-      await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: currentBookId, status: newStatus }, { onConflict: 'user_id,book_id' });
+      const v = document.getElementById('status-select').value;
+      await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: currentBookId, status: v }, { onConflict: 'user_id,book_id' });
       loadAllBooks();
     }
 
     async function updateRating() {
-      const rating = parseInt(document.getElementById('rating-select').value);
-      await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: currentBookId, rating: rating || null }, { onConflict: 'user_id,book_id' });
+      const r = parseInt(document.getElementById('rating-select').value);
+      await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: currentBookId, rating: r || null }, { onConflict: 'user_id,book_id' });
       loadAllBooks();
     }
 
@@ -731,6 +785,7 @@
       closeModal(); loadAllBooks();
     }
 
+    /* ===== Чат ===== */
     function setupChat(bookId, chapterName) {
       if (currentChannel) sb.removeChannel(currentChannel);
       loadMessages(bookId, chapterName);
@@ -738,7 +793,6 @@
       currentChannel = sb.channel(`book-chat-${bookId}-${Date.now()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `book_id=eq.${bookId}` }, payload => {
           if (payload.eventType === 'DELETE') {
-            // в DELETE приходит только id
             delete messagesCache[payload.old.id];
             removeMessageFromDom(payload.old.id);
             return;
@@ -753,14 +807,12 @@
     async function loadMessages(bookId, chapterName) {
       if (!bookId) return;
       const { data } = await sb.from('messages').select('*').eq('book_id', bookId).eq('chapter', chapterName).order('created_at', { ascending: true });
-
       const area = document.getElementById('chat-area');
       if (!area) return;
       area.innerHTML = '';
       messagesCache = {};
-
       if (!data || data.length === 0) {
-        area.innerHTML = '<p class="empty-chat">Тут пока тихо...</p>';
+        area.innerHTML = '<p class="empty-chat">Тут пока тихо...<br>Напиши первым 👋</p>';
       } else {
         data.forEach(m => appendMessage(m, false));
         chatScroll(true);
@@ -770,40 +822,34 @@
     function chatScroll(force) {
       const area = document.getElementById('chat-area');
       if (!area) return;
-      const nearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 150;
-      if (force || nearBottom) area.scrollTop = area.scrollHeight;
+      const near = area.scrollHeight - area.scrollTop - area.clientHeight < 150;
+      if (force || near) area.scrollTop = area.scrollHeight;
     }
 
     function messageHtml(msg) {
       const isMe = msg.user_id === currentUser.id;
-      const displayName = isMe ? 'Вы' : (msg.user_email || 'anon');
-      const timeStr = msg.created_at ? formatTime(msg.created_at) : '';
-
-      // Ответ хранится в первой строке: "> Автор: текст...\nсообщение"
+      const name = msg.user_email || 'anon';
       let text = msg.content || '';
       let quoteHtml = '';
       if (text.startsWith('> ')) {
         const i = text.indexOf('\n');
-        if (i > 0) {
-          quoteHtml = `<div class="reply-quote">${escapeHtml(text.slice(2, i))}</div>`;
-          text = text.slice(i + 1);
-        }
+        if (i > 0) { quoteHtml = `<div class="reply-quote">${escapeHtml(text.slice(2, i))}</div>`; text = text.slice(i + 1); }
       }
-
-      const body = msg.is_spoiler
-        ? `<span class="spoiler">${escapeHtml(text)}</span>`
-        : escapeHtml(text);
-
+      const body = msg.is_spoiler ? `<span class="spoiler">${escapeHtml(text)}</span>` : escapeHtml(text);
       const canEdit = isMe || isAdmin() || isOwner();
 
       return `
         <div class="msg-wrapper ${isMe ? 'my-msg' : ''}" id="msg-${msg.id}" data-id="${msg.id}">
-          <div class="msg-meta">${escapeHtml(displayName)} • ${timeStr}</div>
-          <div class="msg-bubble">${quoteHtml}${body}</div>
+          <div class="msg-bubble">
+            ${isMe ? '' : `<div class="msg-author" style="color:${nameColor(name)}">${escapeHtml(name)}</div>`}
+            ${quoteHtml}
+            <div class="msg-text">${body}</div>
+            <div class="msg-time">${formatTime(msg.created_at)}</div>
+          </div>
           <div class="msg-actions">
-            <button data-action="reply" title="Ответить">↩️</button>
-            ${canEdit ? `<button data-action="edit" title="Изменить">✏️</button>` : ''}
-            ${canEdit ? `<button data-action="delete" title="Удалить">🗑</button>` : ''}
+            <button data-action="reply">Ответить</button>
+            ${canEdit ? `<button data-action="edit">Изменить</button>` : ''}
+            ${canEdit ? `<button data-action="delete">Удалить</button>` : ''}
           </div>
         </div>`;
     }
@@ -817,28 +863,23 @@
       if (btn) {
         const msg = messagesCache[id];
         if (!msg) return;
-        const action = btn.dataset.action;
-        if (action === 'reply') prepareReply(msg);
-        if (action === 'edit') editMessage(msg.id, msg.content);
-        if (action === 'delete') deleteMessage(msg.id);
+        const a = btn.dataset.action;
+        if (a === 'reply') prepareReply(msg);
+        if (a === 'edit') editMessage(msg.id, msg.content);
+        if (a === 'delete') deleteMessage(msg.id);
         wrapper.classList.remove('show-actions');
         return;
       }
-
-      const spoiler = e.target.closest('.spoiler');
-      if (spoiler) { spoiler.classList.toggle('revealed'); return; }
-
-      if (e.target.closest('.msg-bubble')) {
-        wrapper.classList.toggle('show-actions');
-      }
+      const sp = e.target.closest('.spoiler');
+      if (sp) { sp.classList.toggle('revealed'); return; }
+      if (e.target.closest('.msg-bubble')) wrapper.classList.toggle('show-actions');
     }
 
     function appendMessage(msg, forceScroll) {
       const area = document.getElementById('chat-area');
       if (!area) return;
-      if (document.getElementById(`msg-${msg.id}`)) return; // защита от дублей
-      const placeholder = area.querySelector('.empty-chat');
-      if (placeholder) placeholder.remove();
+      if (document.getElementById(`msg-${msg.id}`)) return;
+      area.querySelector('.empty-chat')?.remove();
 
       messagesCache[msg.id] = msg;
       const div = document.createElement('div');
@@ -855,57 +896,43 @@
       messagesCache[msg.id] = msg;
       const div = document.createElement('div');
       div.innerHTML = messageHtml(msg);
-      const wrapper = div.firstElementChild;
-      old.replaceWith(wrapper);
-      addSwipeListeners(wrapper);
+      const w = div.firstElementChild;
+      w.style.animation = 'none';
+      old.replaceWith(w);
+      addSwipeListeners(w);
     }
 
     function removeMessageFromDom(id) {
-      const div = document.getElementById(`msg-${id}`);
-      if (div) div.remove();
+      document.getElementById(`msg-${id}`)?.remove();
       const area = document.getElementById('chat-area');
       if (area && !area.querySelector('.msg-wrapper')) {
-        area.innerHTML = '<p class="empty-chat">Тут пока тихо...</p>';
+        area.innerHTML = '<p class="empty-chat">Тут пока тихо...<br>Напиши первым 👋</p>';
       }
     }
 
-    /* Свайп влево по сообщению = ответить */
-    function addSwipeListeners(element) {
-      if (!element) return;
-      let startX = 0, startY = 0, currentX = 0;
-      let isSwiping = false, isScrolling = false;
-
-      element.addEventListener('touchstart', e => {
-        startX = currentX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        isSwiping = false; isScrolling = false;
-        element.classList.add('swiping');
+    /* Свайп влево = ответить */
+    function addSwipeListeners(el) {
+      if (!el) return;
+      let sx = 0, sy = 0, cx = 0, swiping = false, scrolling = false;
+      el.addEventListener('touchstart', e => {
+        sx = cx = e.touches[0].clientX; sy = e.touches[0].clientY;
+        swiping = false; scrolling = false; el.classList.add('swiping');
       }, { passive: true });
-
-      element.addEventListener('touchmove', e => {
-        if (isScrolling) return;
-        currentX = e.touches[0].clientX;
-        const diffX = currentX - startX;
-        const diffY = e.touches[0].clientY - startY;
-
-        if (!isSwiping) {
-          if (Math.abs(diffY) > 10 && Math.abs(diffY) > Math.abs(diffX)) { isScrolling = true; return; }
-          if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) isSwiping = true;
+      el.addEventListener('touchmove', e => {
+        if (scrolling) return;
+        cx = e.touches[0].clientX;
+        const dx = cx - sx, dy = e.touches[0].clientY - sy;
+        if (!swiping) {
+          if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { scrolling = true; return; }
+          if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) swiping = true;
         }
-        if (isSwiping && diffX < 0) {
-          element.style.transform = `translateX(${Math.max(diffX, -80)}px)`;
-        }
+        if (swiping && dx < 0) el.style.transform = `translateX(${Math.max(dx, -80)}px)`;
       }, { passive: true });
-
-      element.addEventListener('touchend', () => {
-        element.classList.remove('swiping');
-        const diffX = currentX - startX;
-        if (isSwiping && diffX < -50) {
-          const msg = messagesCache[element.dataset.id];
-          if (msg) prepareReply(msg);
-        }
-        element.style.transform = 'translateX(0px)';
-        isSwiping = false; isScrolling = false;
+      el.addEventListener('touchend', () => {
+        el.classList.remove('swiping');
+        if (swiping && cx - sx < -50) { const m = messagesCache[el.dataset.id]; if (m) prepareReply(m); }
+        el.style.transform = 'translateX(0)';
+        swiping = false; scrolling = false;
       });
     }
 
@@ -936,12 +963,11 @@
         const q = replyToMessage.text.replace(/\n/g, ' ').substring(0, 30);
         finalContent = `> ${replyToMessage.author}: ${q}${replyToMessage.text.length > 30 ? '…' : ''}\n${content}`;
       }
-
       const isSpoiler = spoilerOn;
       input.value = '';
       cancelReply();
       if (spoilerOn) toggleSpoiler();
-      input.focus(); // клавиатура остаётся открытой
+      input.focus();
 
       const { error } = await sb.from('messages').insert({
         book_id: currentBookId, user_id: currentUser.id, user_email: currentUserName,
@@ -951,16 +977,12 @@
     }
 
     async function editMessage(id, oldContent) {
-      let plain = oldContent || '';
-      let prefix = '';
-      if (plain.startsWith('> ')) {
-        const i = plain.indexOf('\n');
-        if (i > 0) { prefix = plain.slice(0, i + 1); plain = plain.slice(i + 1); }
-      }
-      const newContent = prompt('Изменить:', plain);
-      if (newContent === null) return;
-      const trimmed = newContent.trim(); if (!trimmed) return;
-      await sb.from('messages').update({ content: prefix + trimmed }).eq('id', id);
+      let plain = oldContent || '', prefix = '';
+      if (plain.startsWith('> ')) { const i = plain.indexOf('\n'); if (i > 0) { prefix = plain.slice(0, i + 1); plain = plain.slice(i + 1); } }
+      const nc = prompt('Изменить:', plain);
+      if (nc === null) return;
+      const t = nc.trim(); if (!t) return;
+      await sb.from('messages').update({ content: prefix + t }).eq('id', id);
     }
 
     async function deleteMessage(id) {
@@ -979,12 +1001,12 @@
     }
 
     function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+
     function closeModal() {
       document.getElementById('book-modal').classList.add('hidden');
+      document.body.classList.remove('modal-open');
       if (currentChannel) { sb.removeChannel(currentChannel); currentChannel = null; }
-      currentBookId = null;
-      spoilerOn = false;
-      replyToMessage = null;
+      currentBookId = null; spoilerOn = false; replyToMessage = null;
     }
 
     checkSession();
