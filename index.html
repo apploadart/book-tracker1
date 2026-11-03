@@ -576,23 +576,47 @@
       return (doc.body.textContent || '').trim();
     }
 
+    // Необязательно: свой бесплатный ключ Google Books API (снимает лимиты). Можно оставить пустым.
+    const GOOGLE_BOOKS_KEY = '';
+
     async function searchGoogle(q) {
-      const r = await fetch('https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(q) + '&printType=books&maxResults=20');
-      if (!r.ok) throw new Error('google ' + r.status);
+      const variants = [q, `inauthor:"${q}"`, `intitle:"${q}"`];
+      for (const v of variants) {
+        let url = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(v) + '&maxResults=20';
+        if (GOOGLE_BOOKS_KEY) url += '&key=' + GOOGLE_BOOKS_KEY;
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(r.status);
+        const j = await r.json();
+        if (!j.items || !j.items.length) continue;
+        return j.items.map(it => {
+          const vi = it.volumeInfo || {};
+          let thumb = (vi.imageLinks && (vi.imageLinks.thumbnail || vi.imageLinks.smallThumbnail)) || '';
+          thumb = thumb.replace('http://', 'https://').replace('&edge=curl', '');
+          return {
+            gid: 'gb_' + it.id,
+            title: vi.title || 'Без названия',
+            authors: (vi.authors || []).join(', ') || 'Автор неизвестен',
+            year: (vi.publishedDate || '').slice(0, 4),
+            description: stripHtml(vi.description),
+            thumb
+          };
+        });
+      }
+      return [];
+    }
+
+    async function searchITunes(q) {
+      const r = await fetch('https://itunes.apple.com/search?media=ebook&entity=ebook&country=ru&limit=20&term=' + encodeURIComponent(q));
+      if (!r.ok) throw new Error(r.status);
       const j = await r.json();
-      return (j.items || []).map(it => {
-        const v = it.volumeInfo || {};
-        let thumb = (v.imageLinks && (v.imageLinks.thumbnail || v.imageLinks.smallThumbnail)) || '';
-        thumb = thumb.replace('http://', 'https://').replace('&edge=curl', '');
-        return {
-          gid: 'gb_' + it.id,
-          title: v.title || 'Без названия',
-          authors: (v.authors || []).join(', ') || 'Автор неизвестен',
-          year: (v.publishedDate || '').slice(0, 4),
-          description: stripHtml(v.description),
-          thumb
-        };
-      });
+      return (j.results || []).map(it => ({
+        gid: 'it_' + it.trackId,
+        title: it.trackName || 'Без названия',
+        authors: it.artistName || 'Автор неизвестен',
+        year: (it.releaseDate || '').slice(0, 4),
+        description: stripHtml(it.description),
+        thumb: (it.artworkUrl100 || '').replace('100x100bb', '300x300bb')
+      }));
     }
 
     async function searchOpenLibrary(q) {
@@ -629,19 +653,28 @@
       box.innerHTML = '<div class="empty">Ищем…</div>';
       document.getElementById('search-input').blur();
 
-      let res = [], failed = 0;
-      try { res = await searchGoogle(q); } catch (e) { failed++; }
-      if (!res.length) {
-        try { res = await searchOpenLibrary(q); } catch (e) { failed++; }
-      }
+      const sources = [
+        ['Google Books', searchGoogle],
+        ['Apple Books', searchITunes],
+        ['Open Library', searchOpenLibrary]
+      ];
+      const settled = await Promise.allSettled(sources.map(([, fn]) => fn(q)));
+      let res = [];
+      const report = [];
+      settled.forEach((st, i) => {
+        if (st.status === 'fulfilled') { res = res.concat(st.value); report.push(`${sources[i][0]}: ${st.value.length}`); }
+        else report.push(`${sources[i][0]}: ошибка ${(st.reason && st.reason.message) || ''}`);
+      });
+      const failed = settled.filter(st => st.status === 'rejected').length;
       searchResults = dedupeResults(res);
       searchBusy = false;
       btn.disabled = false; btn.textContent = 'Найти';
 
       if (!searchResults.length) {
-        box.innerHTML = failed >= 2
-          ? '<div class="empty">Не удалось связаться с поиском. Проверь интернет и попробуй ещё раз.</div>'
-          : '<div class="empty">Ничего не нашлось. Попробуй изменить запрос или добавь книгу вручную.</div>';
+        const msg = failed === sources.length
+          ? 'Не удалось связаться с поиском. Проверь интернет и попробуй ещё раз.'
+          : 'Ничего не нашлось. Попробуй изменить запрос или добавь книгу вручную.';
+        box.innerHTML = `<div class="empty">${msg}<br><small style="opacity:.6">${escapeHtml(report.join(' · '))}</small></div>`;
         return;
       }
       renderSearchResults();
