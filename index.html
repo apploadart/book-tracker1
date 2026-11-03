@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>Book Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -13,141 +13,113 @@
       --chat-bg: #0a0a0c; --msg-out: #7c3aed; --msg-in: #1a1a1e;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      margin: 0; padding: 0; background: var(--bg); color: var(--text); line-height: 1.5; 
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 0; background: var(--bg); color: var(--text); line-height: 1.5;
       -webkit-font-smoothing: antialiased; background-image: radial-gradient(circle at top right, rgba(124, 58, 237, 0.1), transparent 40%);
-      overflow: hidden; 
+      overflow: hidden;
     }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 60px; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
-    
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 60px; height: 100%; overflow-y: auto; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; }
+
     .profile-header { display: flex; align-items: center; gap: 16px; padding: 20px 0 24px 0; flex-shrink: 0; }
-    .avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; text-transform: uppercase; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4); cursor: pointer; position: relative; }
+    .avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; text-transform: uppercase; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4); cursor: pointer; position: relative; flex-shrink: 0; }
     .profile-info h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
     .profile-stats { display: flex; gap: 12px; font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-    
+
     .card { background: var(--card); border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); animation: fadeIn 0.4s ease; flex-shrink: 0; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
+
     input, select, textarea { width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; outline: none; transition: all 0.2s; margin-bottom: 16px; background: #000; color: var(--text); font-family: inherit; }
     input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2); }
-    
+
     .file-upload { display: block; width: 100%; padding: 14px; border: 2px dashed var(--border); border-radius: 12px; text-align: center; cursor: pointer; color: var(--text-muted); transition: 0.2s; margin-bottom: 16px; font-size: 14px; }
     .file-upload:hover { border-color: var(--primary); color: var(--primary); }
     .file-upload input[type="file"] { display: none; }
-    
-    .btn { display: inline-flex; justify-content: center; align-items: center; padding: 14px 20px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; margin-bottom: 12px; }
+
+    .btn { display: inline-flex; justify-content: center; align-items: center; padding: 14px 20px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; margin-bottom: 12px; color: inherit; font-family: inherit; }
     .btn:active { transform: scale(0.98); }
     .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3); }
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-secondary { background: #27272a; color: var(--text); }
     .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
     .btn-small { width: auto; padding: 10px 16px; font-size: 14px; margin: 0; border-radius: 10px; }
-    
+
     .book-item { display: flex; gap: 16px; padding: 16px; background: var(--card); border-radius: 16px; margin-bottom: 12px; align-items: center; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
     .book-item:hover { background: var(--card-hover); transform: translateY(-2px); }
     .book-cover { width: 70px; height: 105px; border-radius: 8px; object-fit: cover; background: #27272a; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-    .book-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .book-info { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
     .book-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; line-height: 1.3; }
     .book-author { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
-    
+
     .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #27272a; color: #d4d4d8; width: fit-content; }
     .badge-read { background: rgba(16, 185, 129, 0.15); color: #34d399; }
     .badge-finished { background: rgba(124, 58, 237, 0.15); color: #c084fc; }
-    
-    /* МОДАЛКА */
-    .modal { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; justify-content: center; }
-    .modal-content { 
-      background: var(--bg); 
-      width: 100%; 
-      max-width: 600px; 
-      height: 100%; 
-      display: flex; 
-      flex-direction: column; 
-      position: relative; 
-      overflow: hidden;
-    }
-    
-    .modal-header { padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top)); display: flex; gap: 16px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; z-index: 20;}
-    .modal-close { background: #27272a; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); transition: 0.2s; margin-left: auto; flex-shrink: 0; }
-    
-    /* ТЕЛО МОДАЛКИ (ВСЁ СКРОЛЛИТСЯ ЗДЕСЬ) */
-    .modal-body { 
-      flex: 1; 
-      overflow-y: auto; 
-      display: flex;
-      flex-direction: column;
-      padding-bottom: 120px; /* Место под прилипший инпут */
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-    }
-    
-    .book-info-scroll { padding: 20px; padding-bottom: 0; flex-shrink: 0; }
-    .desc-toggle { background: #1a1a1e; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; color: var(--text-muted); }
-    .desc-toggle:hover { color: var(--text); }
-    .desc-content { display: none; padding: 0 16px 16px 16px; font-size: 14px; color: var(--text-muted); line-height: 1.6; border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; margin-top: -16px; margin-bottom: 16px; background: #1a1a1e; }
-    .desc-content.open { display: block; }
 
-    /* ЧАТ-ОБЕРТКА */
-    .chat-wrapper { background: var(--chat-bg); border-top: 1px solid var(--border); margin-top: 10px; }
-    
-    /* ВКЛАДКИ ГЛАВ (ПРИЛИПАЮТ К ВЕРХУ ПРИ СКРОЛЛЕ) */
-    .chapter-tabs-container { 
-      padding: 12px 16px; 
-      border-bottom: 1px solid var(--border); 
-      background: var(--card); 
-      position: sticky; 
-      top: 0; 
-      z-index: 15;
-    }
-    .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+    /* ===== МОДАЛКА (как экран чата в мессенджере) ===== */
+    .modal { position: fixed; left: 0; right: 0; top: 0; height: 100%; height: 100dvh; background: var(--bg); z-index: 100; display: flex; justify-content: center; }
+    .modal-content { background: var(--bg); width: 100%; max-width: 600px; height: 100%; position: relative; overflow: hidden; }
+    .modal-root { height: 100%; display: flex; flex-direction: column; }
+
+    /* Шапка */
+    .modal-header { padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); display: flex; gap: 10px; border-bottom: 1px solid var(--border); align-items: center; background: var(--bg); flex-shrink: 0; }
+    .modal-header .head-cover { width: 34px; height: 50px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+    .modal-header .head-text { flex: 1; min-width: 0; }
+    .modal-header h2 { margin: 0; font-size: 16px; line-height: 1.2; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .modal-header .head-author { color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .icon-btn { background: #27272a; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); flex-shrink: 0; padding: 0; margin: 0; }
+    .icon-btn.active { background: var(--primary); }
+
+    /* Сворачиваемая панель "О книге" */
+    .info-panel { display: none; flex-shrink: 0; max-height: 45%; overflow-y: auto; padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--card); -webkit-overflow-scrolling: touch; }
+    .info-panel.open { display: block; }
+    .info-panel .desc-text { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px; white-space: pre-wrap; }
+    .info-panel label.lbl { font-weight: 600; font-size: 12px; margin-bottom: 6px; display: block; color: var(--text-muted); text-transform: uppercase; }
+    .info-panel select { margin-bottom: 12px; border: none; background: #000; padding: 12px 14px; }
+    .info-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Главы */
+    .chapter-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--card); flex-shrink: 0; }
+    .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; flex: 1; -webkit-overflow-scrolling: touch; }
     .chapter-tabs::-webkit-scrollbar { display: none; }
     .chapter-tab { white-space: nowrap; padding: 6px 14px; border-radius: 20px; background: #27272a; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
     .chapter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
-    
-    .chat-messages { padding: 16px; display: flex; flex-direction: column; gap: 8px; min-height: 50px; }
-    
-    .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; transition: transform 0.1s ease-out; touch-action: pan-y; }
+    .chapter-bar .icon-btn { width: 32px; height: 32px; font-size: 16px; }
+
+    /* Сообщения — единственная скроллящаяся зона */
+    .chat-messages { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--chat-bg); }
+
+    .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; align-self: flex-start; transition: transform 0.1s ease-out; touch-action: pan-y; flex-shrink: 0; }
     .msg-wrapper.my-msg { align-self: flex-end; }
     .msg-wrapper.swiping { transition: none; }
-    
-    .msg-bubble { background: var(--msg-in); padding: 10px 14px; border-radius: 16px; border-bottom-left-radius: 4px; font-size: 15px; border: 1px solid var(--border); position: relative; word-wrap: break-word; width: 100%; }
+
+    .msg-bubble { background: var(--msg-in); padding: 8px 12px; border-radius: 16px; border-bottom-left-radius: 4px; font-size: 15px; border: 1px solid var(--border); word-wrap: break-word; overflow-wrap: anywhere; white-space: pre-wrap; cursor: pointer; }
     .msg-wrapper.my-msg .msg-bubble { background: var(--msg-out); border-color: var(--primary); border-bottom-left-radius: 16px; border-bottom-right-radius: 4px; color: white; }
-    
-    .msg-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: flex; justify-content: space-between; gap: 12px; font-weight: 600; align-items: flex-end; }
-    .msg-wrapper.my-msg .msg-meta { flex-direction: row-reverse; }
-    
-    .msg-actions { display: flex; gap: 4px; margin-bottom: 4px; flex-wrap: wrap; }
-    .msg-actions button { background: rgba(255,255,255,0.1); border: none; cursor: pointer; font-size: 14px; padding: 4px 8px; color: var(--text); border-radius: 6px; opacity: 0.8; transition: 0.2s; }
-    .msg-actions button:hover { opacity: 1; background: rgba(255,255,255,0.2); }
-    
-    .reply-quote { background: rgba(0,0,0,0.2); border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
-    .reply-quote b { color: var(--text); }
+
+    .msg-meta { font-size: 11px; color: var(--text-muted); margin: 0 4px 3px 4px; font-weight: 600; }
+    .msg-wrapper.my-msg .msg-meta { text-align: right; }
+
+    .msg-actions { display: none; gap: 6px; margin-top: 4px; }
+    .msg-wrapper.my-msg .msg-actions { justify-content: flex-end; }
+    .msg-wrapper.show-actions .msg-actions { display: flex; }
+    .msg-actions button { background: #27272a; border: none; cursor: pointer; font-size: 14px; padding: 6px 10px; color: var(--text); border-radius: 8px; }
+
+    .reply-quote { background: rgba(0,0,0,0.25); border-left: 3px solid var(--accent); padding: 4px 8px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; color: #d4d4d8; white-space: normal; }
 
     .spoiler { background: #3f3f46; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; transition: 0.2s; }
     .spoiler.revealed { background: transparent; color: inherit; }
-    
-    /* ЗОНА ВВОДА (ПРИЛИПАЕТ К НИЗУ ЭКРАНА) */
-    .chat-input-area { 
-      position: sticky; 
-      bottom: 0; 
-      padding: 12px 16px; 
-      padding-bottom: max(12px, env(safe-area-inset-bottom)); 
-      background: var(--card); 
-      border-top: 1px solid var(--border); 
-      display: flex; 
-      flex-direction: column; 
-      gap: 8px; 
-      z-index: 50;
-    }
-    .reply-preview { display: none; background: #1a1a1e; border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 8px; font-size: 13px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    
-    .input-row { display: flex; gap: 8px; align-items: flex-end; }
-    .input-row input { margin-bottom: 0; border-radius: 20px; padding: 12px 16px; background: #000; }
-    .input-row button { width: 44px; height: 44px; border-radius: 50%; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 0; }
-    .input-options { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); align-items: center; }
-    .input-options label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
-    
+    .empty-chat { color: var(--text-muted); text-align: center; font-size: 14px; margin: auto; }
+
+    /* Поле ввода — всегда внизу, над клавиатурой */
+    .chat-input-area { flex-shrink: 0; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--border); }
+    .reply-preview { display: none; background: #1a1a1e; border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 8px; font-size: 13px; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .reply-preview span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .reply-preview button { background: none; border: none; color: var(--text); font-size: 16px; cursor: pointer; flex-shrink: 0; }
+    .input-row { display: flex; gap: 8px; align-items: center; }
+    .input-row input { margin-bottom: 0; border-radius: 22px; padding: 11px 16px; background: #000; flex: 1; min-width: 0; }
+    .input-row .icon-btn { width: 44px; height: 44px; }
+    .input-row .send-btn { background: var(--primary); }
+
     .system-alert {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
       background: linear-gradient(135deg, #7c3aed, #c084fc); color: white;
@@ -158,17 +130,20 @@
     @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
     .system-alert span { font-size: 15px; font-weight: 500; line-height: 1.3; }
     .system-alert button { background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    
+
     .hidden { display: none !important; }
     .flex-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .text-center { text-align: center; }
     .error-text { color: var(--danger); font-size: 14px; margin-top: 8px; font-weight: 500; }
-    
-    @media (min-width: 600px) { 
+
+    /* Телефон: высоту берём из visualViewport (подстраивается под клавиатуру) */
+    @media (max-width: 599px) {
+      .modal { top: var(--app-top, 0px); height: var(--app-h, 100dvh); }
+    }
+    @media (min-width: 600px) {
       .modal { align-items: center; }
       .modal-content { height: 90vh; border-radius: 24px; border: 1px solid var(--border); }
-      .msg-actions { opacity: 0; } 
-      .msg-wrapper:hover .msg-actions { opacity: 1; }
+      .msg-wrapper:hover .msg-actions { display: flex; }
     }
   </style>
 </head>
@@ -179,7 +154,7 @@
   </div>
 
   <div class="container">
-    
+
     <div id="profile-header" class="profile-header hidden">
       <div class="avatar" id="user-avatar" onclick="changeName()">U</div>
       <div class="profile-info">
@@ -204,7 +179,7 @@
     </div>
 
     <div id="main-section" class="hidden">
-      
+
       <div id="owner-panel" class="card hidden" style="border-color: var(--accent); background: linear-gradient(to right, #121214, rgba(192, 132, 252, 0.1));">
         <h3 style="margin-top:0; font-size: 16px; color: var(--accent);">👑 Панель Владельца</h3>
         <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Отправить системное уведомление (увидят все при входе):</p>
@@ -225,7 +200,7 @@
         <input id="add-title" placeholder="Название книги" />
         <input id="add-author" placeholder="Автор" />
         <textarea id="add-desc" placeholder="Описание книги (необязательно)" rows="3" style="resize:none;"></textarea>
-        
+
         <label class="file-upload" id="file-label">
           <span id="file-text">📸 Выбрать обложку с устройства</span>
           <input type="file" id="add-cover-file" accept="image/*" onchange="updateFileName(this)" />
@@ -243,13 +218,13 @@
 
   <div id="book-modal" class="modal hidden">
     <div class="modal-content">
-      <div id="modal-content-root"></div>
+      <div id="modal-content-root" class="modal-root"></div>
     </div>
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://urfleyxdtffzbznvqzqr.supabase.co'; 
-    const SUPABASE_ANON_KEY = 'sb_publishable_uBtzu9m4mdmxT1f946_G2g_FpWwi31t'; 
+    const SUPABASE_URL = 'https://urfleyxdtffzbznvqzqr.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_uBtzu9m4mdmxT1f946_G2g_FpWwi31t';
     const FAKE_DOMAIN = 'book-tracker.local';
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -262,11 +237,34 @@
     let selectedFile = null;
     let replyToMessage = null;
     let currentAlertId = null;
+    let messagesCache = {};
+
+    /* ===== Подгонка высоты под клавиатуру (телефон) ===== */
+    function syncViewport() {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const root = document.documentElement;
+      root.style.setProperty('--app-h', vv.height + 'px');
+      root.style.setProperty('--app-top', vv.offsetTop + 'px');
+      if (currentBookId) {
+        // iOS любит сдвигать страницу при фокусе — возвращаем на место
+        if (window.scrollY !== 0) window.scrollTo(0, 0);
+        const area = document.getElementById('chat-area');
+        if (area && document.activeElement && document.activeElement.id === 'chat-input') {
+          area.scrollTop = area.scrollHeight;
+        }
+      }
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncViewport);
+      window.visualViewport.addEventListener('scroll', syncViewport);
+    }
+    syncViewport();
 
     function isValidLogin(login) { return /^[a-zA-Z0-9_-]{3,30}$/.test(login); }
     function loginToEmail(login) { return login + '@' + FAKE_DOMAIN; }
-    
-    function emailToLogin(email) { 
+
+    function emailToLogin(email) {
       if (!email) return '';
       if (email.endsWith('@' + FAKE_DOMAIN)) {
         return email.slice(0, -(FAKE_DOMAIN.length + 1));
@@ -285,15 +283,15 @@
       if (newName === null) return;
       const trimmed = newName.trim();
       if (!trimmed) return alert('Имя не может быть пустым');
-      
-      const { data, error } = await sb.auth.updateUser({ data: { display_name: trimmed } });
+
+      const { error } = await sb.auth.updateUser({ data: { display_name: trimmed } });
       if (error) return alert('Ошибка сохранения: ' + error.message);
 
       currentUserName = trimmed;
       document.getElementById('user-name').innerHTML = `${escapeHtml(trimmed)} <span>✏️</span>`;
       document.getElementById('user-avatar').textContent = trimmed.charAt(0);
-      
-      loadMessages(currentBookId, currentChapter);
+
+      if (currentBookId) loadMessages(currentBookId, currentChapter);
     }
 
     function updateFileName(input) {
@@ -315,10 +313,10 @@
     async function uploadCover(file) {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
-      const { data, error } = await sb.storage.from('covers').upload(fileName, file);
+
+      const { error } = await sb.storage.from('covers').upload(fileName, file);
       if (error) throw error;
-      
+
       const { data: urlData } = sb.storage.from('covers').getPublicUrl(fileName);
       return urlData.publicUrl;
     }
@@ -330,13 +328,13 @@
       if (login.toLowerCase() === 'admin' || login.toLowerCase() === 'owner') { msg.textContent = 'Этот логин занят.'; return; }
       if (!isValidLogin(login)) { msg.textContent = 'ID: 3–30 символов'; return; }
       if (password.length < 6) { msg.textContent = 'Пароль от 6 символов'; return; }
-      
-      const { error } = await sb.auth.signUp({ 
-        email: loginToEmail(login), 
+
+      const { error } = await sb.auth.signUp({
+        email: loginToEmail(login),
         password,
         options: { data: { display_name: login } }
       });
-      
+
       if (error) { msg.textContent = error.message; return; }
       msg.style.color = '#34d399'; msg.textContent = 'Успех! Заходим...';
       setTimeout(checkSession, 800);
@@ -346,7 +344,7 @@
       const login = document.getElementById('login-id').value.trim();
       const password = document.getElementById('login-password').value;
       const msg = document.getElementById('auth-msg');
-      
+
       if (login.toLowerCase() === 'owner') {
         const { error } = await sb.auth.signInWithPassword({ email: loginToEmail('owner'), password });
         if (error) { msg.textContent = 'Неверный пароль владельца.'; return; }
@@ -381,7 +379,7 @@
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('main-section').classList.remove('hidden');
         document.getElementById('profile-header').classList.remove('hidden');
-        
+
         document.getElementById('user-name').innerHTML = `${escapeHtml(currentUserName)} <span>✏️</span>`;
         document.getElementById('user-avatar').textContent = currentUserName.charAt(0);
 
@@ -408,11 +406,11 @@
 
     async function checkUnreadAlerts() {
       const { data } = await sb.from('system_alerts').select('*').order('created_at', { ascending: false }).limit(1);
-      
+
       if (data && data.length > 0) {
         const latestAlert = data[0];
         const readAlerts = JSON.parse(localStorage.getItem('read_alerts') || '[]');
-        
+
         if (!readAlerts.includes(latestAlert.id)) {
           currentAlertId = latestAlert.id;
           document.getElementById('alert-text').textContent = latestAlert.content;
@@ -436,7 +434,7 @@
       const input = document.getElementById('alert-input');
       const text = input.value.trim();
       if (!text) return;
-      
+
       await sb.from('system_alerts').insert({ content: text });
       input.value = '';
       alert('Уведомление отправлено!');
@@ -446,7 +444,7 @@
       const title = document.getElementById('add-title').value.trim();
       const author = document.getElementById('add-author').value.trim();
       const description = document.getElementById('add-desc').value.trim();
-      
+
       if (!title) return alert('Введите название книги');
 
       const btn = document.querySelector('button[onclick="addBookManually()"]');
@@ -457,7 +455,7 @@
         let coverUrl = '';
         if (selectedFile) coverUrl = await uploadCover(selectedFile);
 
-        const google_id = 'manual_' + Date.now(); 
+        const google_id = 'manual_' + Date.now();
 
         const { data, error } = await sb.from('books').insert({
           google_id, title, authors: author || 'Автор неизвестен', thumbnail: coverUrl, description: description
@@ -474,7 +472,7 @@
         document.getElementById('add-desc').value = '';
         document.getElementById('add-cover-file').value = '';
         updateFileName(document.getElementById('add-cover-file'));
-        
+
         loadAllBooks();
       } catch (err) {
         alert('Ошибка: ' + err.message);
@@ -485,7 +483,7 @@
 
     async function randomizeBook(btn) {
       const { data: myBooks, error } = await sb.from('user_books').select('book_id').eq('user_id', currentUser.id).eq('status', 'want_to_read');
-      
+
       if (error) return alert('Ошибка базы: ' + error.message);
       if (!myBooks || myBooks.length === 0) return alert('В списке "Хочу" пусто!');
 
@@ -498,7 +496,7 @@
     async function loadAllBooks() {
       const { data: books } = await sb.from('books').select('*').order('created_at', { ascending: false });
       if (!books) return;
-      
+
       const { data: userBooks } = await sb.from('user_books').select('*').eq('user_id', currentUser.id);
       const userMap = {};
       (userBooks || []).forEach(ub => { userMap[ub.book_id] = ub; });
@@ -514,8 +512,8 @@
       document.getElementById('stat-fin').textContent = fin;
 
       const container = document.getElementById('all-books');
-      if (books.length === 0) { 
-        container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 20px 0;">Тут пока пусто. Добавь первую книгу!</p>'; return; 
+      if (books.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 20px 0;">Тут пока пусто. Добавь первую книгу!</p>'; return;
       }
 
       container.innerHTML = books.map(book => {
@@ -526,10 +524,12 @@
         if (status === 'reading') statusHtml = '<span class="badge badge-read">📖 Читаю</span>';
         if (status === 'finished') statusHtml = '<span class="badge badge-finished">✅ Прочитано</span>';
         if (status === 'want_to_read') statusHtml = '<span class="badge">📌 Хочу</span>';
-        
+        if (status === 'paused') statusHtml = '<span class="badge">⏸ На паузе</span>';
+        if (status === 'dropped') statusHtml = '<span class="badge">🚫 Брошено</span>';
+
         return `
           <div class="book-item" onclick="openBook(${book.id})">
-            ${book.thumbnail ? `<img src="${book.thumbnail}" class="book-cover" onerror="this.style.display='none';">` : `<div class="book-cover" style="display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:10px; text-align:center;">Нет</div>`}
+            ${book.thumbnail ? `<img src="${escapeHtml(book.thumbnail)}" class="book-cover" onerror="this.style.display='none';">` : `<div class="book-cover" style="display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:10px; text-align:center;">Нет</div>`}
             <div class="book-info">
               <div><div class="book-title">${escapeHtml(book.title)}</div><div class="book-author">${escapeHtml(book.authors || '')}</div></div>
               <div class="flex-row">${statusHtml} <span style="color:#fbbf24; font-size:14px; font-weight:600;">${rating}</span></div>
@@ -541,103 +541,105 @@
     async function openBook(bookId) {
       currentBookId = bookId;
       currentChapter = 'Общий чат';
+      messagesCache = {};
       document.getElementById('book-modal').classList.remove('hidden');
       document.getElementById('modal-content-root').innerHTML = '<p style="padding:20px; text-align:center;">Загрузка...</p>';
+      syncViewport();
 
       const { data: book } = await sb.from('books').select('*').eq('id', bookId).single();
       const { data: ub } = await sb.from('user_books').select('*').eq('user_id', currentUser.id).eq('book_id', bookId).maybeSingle();
-      
+
       const status = ub?.status || null;
       const rating = ub?.rating || 0;
-      const adminBtn = (isAdmin() || isOwner()) ? `<button class="btn btn-danger btn-small" style="margin-top:4px;" onclick="clearChat()">🗑 Очистить</button>` : '';
-      const deleteBookBtn = (isAdmin() || isOwner()) ? `<button class="btn btn-danger btn-small" style="margin-top:8px;" onclick="deleteBook()">Удалить книгу</button>` : '';
-      const editBookBtn = `<button class="btn btn-secondary btn-small" style="margin-top:8px;" onclick="editBookInfo()">✏️ Изменить книгу</button>`;
+      const canModerate = isAdmin() || isOwner();
 
       let actionBlock = '';
       if (!status) {
-        actionBlock = `<button class="btn btn-primary" onclick="addToMyList(${book.id})" style="margin: 0 20px 20px 20px; width: calc(100% - 40px);">+ Добавить в мой список</button>`;
+        actionBlock = `<button class="btn btn-primary" onclick="addToMyList(${book.id})" style="margin-bottom:12px;">+ Добавить в мой список</button>`;
       } else {
         actionBlock = `
-          <div class="card" style="margin: 0 20px 20px 20px; padding:16px; background:#1a1a1e; box-shadow:none;">
-            <label style="font-weight:600; font-size:13px; margin-bottom:8px; display:block; color:var(--text-muted); text-transform:uppercase;">Статус</label>
-            <select id="status-select" onchange="updateStatus()" style="margin-bottom:16px; border:none; background:#000;">
-              <option value="want_to_read" ${status === 'want_to_read' ? 'selected' : ''}>📌 Хочу прочитать</option>
-              <option value="reading" ${status === 'reading' ? 'selected' : ''}>📖 Читаю</option>
-              <option value="paused" ${status === 'paused' ? 'selected' : ''}>⏸ На паузе</option>
-              <option value="dropped" ${status === 'dropped' ? 'selected' : ''}>🚫 Брошено</option>
-              <option value="finished" ${status === 'finished' ? 'selected' : ''}>✅ Завершено</option>
-            </select>
-            <label style="font-weight:600; font-size:13px; margin-bottom:8px; display:block; color:var(--text-muted); text-transform:uppercase;">Оценка</label>
-            <select id="rating-select" onchange="updateRating()" style="margin-bottom:0; border:none; background:#000;">
-              <option value="0">Без оценки</option>
-              ${[1,2,3,4,5].map(n => `<option value="${n}" ${rating === n ? 'selected' : ''}>${'★'.repeat(n)}</option>`).join('')}
-            </select>
-          </div>
+          <label class="lbl">Статус</label>
+          <select id="status-select" onchange="updateStatus()">
+            <option value="want_to_read" ${status === 'want_to_read' ? 'selected' : ''}>📌 Хочу прочитать</option>
+            <option value="reading" ${status === 'reading' ? 'selected' : ''}>📖 Читаю</option>
+            <option value="paused" ${status === 'paused' ? 'selected' : ''}>⏸ На паузе</option>
+            <option value="dropped" ${status === 'dropped' ? 'selected' : ''}>🚫 Брошено</option>
+            <option value="finished" ${status === 'finished' ? 'selected' : ''}>✅ Завершено</option>
+          </select>
+          <label class="lbl">Оценка</label>
+          <select id="rating-select" onchange="updateRating()">
+            <option value="0">Без оценки</option>
+            ${[1,2,3,4,5].map(n => `<option value="${n}" ${rating === n ? 'selected' : ''}>${'★'.repeat(n)}</option>`).join('')}
+          </select>
         `;
       }
 
-      const descHtml = (book.description && book.description.trim() !== '') ? `
-        <div class="desc-toggle" onclick="toggleDesc()">
-          <span>📖 Описание книги</span>
-          <span id="desc-arrow">▼</span>
-        </div>
-        <div class="desc-content" id="desc-content">${escapeHtml(book.description)}</div>
-      ` : '';
+      const descHtml = (book.description && book.description.trim() !== '')
+        ? `<div class="desc-text">${escapeHtml(book.description)}</div>`
+        : '';
 
       document.getElementById('modal-content-root').innerHTML = `
         <div class="modal-header">
-          ${book.thumbnail ? `<img src="${book.thumbnail}" style="width:50px; height:75px; border-radius:8px; object-fit:cover; box-shadow:0 4px 12px rgba(0,0,0,0.5);" onerror="this.style.display='none'">` : ''}
-          <div>
-            <h2 style="margin:0; font-size:18px; line-height:1.2; font-weight:800;">${escapeHtml(book.title)}</h2>
-            <div style="color:var(--text-muted); font-size:13px;">${escapeHtml(book.authors || '')}</div>
+          ${book.thumbnail ? `<img class="head-cover" src="${escapeHtml(book.thumbnail)}" onerror="this.style.display='none'">` : ''}
+          <div class="head-text">
+            <h2>${escapeHtml(book.title)}</h2>
+            <div class="head-author">${escapeHtml(book.authors || '')}</div>
           </div>
-          <button class="modal-close" onclick="closeModal()">✕</button>
+          <button class="icon-btn" id="info-btn" onclick="toggleInfo()" title="О книге">ℹ️</button>
+          <button class="icon-btn" onclick="closeModal()">✕</button>
         </div>
 
-        <div class="modal-body">
-          <div class="book-info-scroll">
-            ${descHtml}
-            ${actionBlock}
-            <div style="margin: 0 20px 20px 20px;">
-              ${editBookBtn}
-              ${deleteBookBtn}
-            </div>
+        <div class="info-panel" id="info-panel">
+          ${descHtml}
+          ${actionBlock}
+          <div class="info-actions">
+            <button class="btn btn-secondary btn-small" onclick="editBookInfo()">✏️ Изменить книгу</button>
+            ${canModerate ? `<button class="btn btn-danger btn-small" onclick="clearChat()">🗑 Очистить главу</button>` : ''}
+            ${canModerate ? `<button class="btn btn-danger btn-small" onclick="deleteBook()">Удалить книгу</button>` : ''}
           </div>
-          
-          <div class="chat-wrapper">
-            <div class="chapter-tabs-container">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-weight:700; font-size:14px; color:var(--text-muted);">ГЛАВЫ</span>
-                ${adminBtn}
-              </div>
-              <div class="chapter-tabs" id="chapter-tabs"></div>
-              <div class="flex-row" style="margin-top:12px;">
-                <input id="new-chapter-input" placeholder="Новая глава..." style="margin-bottom:0; flex:1; padding:8px 12px; font-size:13px; border-radius:8px;" />
-                <button class="btn btn-secondary btn-small" style="padding:8px 12px; border-radius:8px;" onclick="addChapter()">+</button>
-              </div>
-            </div>
+        </div>
 
-            <div class="chat-messages" id="chat-area"></div>
-            
-            <div class="chat-input-area">
-              <div class="reply-preview" id="reply-preview">
-                <span id="reply-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
-                <button onclick="cancelReply()" style="background:none; border:none; color:var(--text); font-size:16px; cursor:pointer;">✕</button>
-              </div>
-              <div class="input-options">
-                <label><input type="checkbox" id="spoiler-check" style="width:auto; margin:0;" /> Под спойлер</label>
-              </div>
-              <div class="input-row">
-                <input id="chat-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" onfocus="scrollToBottom()" />
-                <button class="btn btn-primary" onclick="sendMessage()">➤</button>
-              </div>
-            </div>
+        <div class="chapter-bar">
+          <div class="chapter-tabs" id="chapter-tabs"></div>
+          <button class="icon-btn" onclick="addChapter()" title="Новая глава">+</button>
+        </div>
+
+        <div class="chat-messages" id="chat-area"></div>
+
+        <div class="chat-input-area">
+          <div class="reply-preview" id="reply-preview">
+            <span id="reply-text"></span>
+            <button onclick="cancelReply()">✕</button>
+          </div>
+          <div class="input-row">
+            <button class="icon-btn" id="spoiler-btn" onpointerdown="event.preventDefault()" onclick="toggleSpoiler()" title="Под спойлер">🙈</button>
+            <input id="chat-input" placeholder="Сообщение..." enterkeyhint="send" autocomplete="off" onkeydown="if(event.key==='Enter')sendMessage()" onfocus="onChatFocus()" />
+            <button class="icon-btn send-btn" onpointerdown="event.preventDefault()" onclick="sendMessage()">➤</button>
           </div>
         </div>
       `;
-      
+
+      document.getElementById('chat-area').addEventListener('click', onChatClick);
+
       await loadChapters();
       setupChat(bookId, currentChapter);
+    }
+
+    let spoilerOn = false;
+    function toggleSpoiler() {
+      spoilerOn = !spoilerOn;
+      document.getElementById('spoiler-btn').classList.toggle('active', spoilerOn);
+    }
+
+    function toggleInfo() {
+      const panel = document.getElementById('info-panel');
+      const btn = document.getElementById('info-btn');
+      const open = panel.classList.toggle('open');
+      btn.classList.toggle('active', open);
+    }
+
+    function onChatFocus() {
+      setTimeout(() => { window.scrollTo(0, 0); chatScroll(true); }, 300);
     }
 
     async function editBookInfo() {
@@ -665,27 +667,10 @@
       }
     }
 
-    function toggleDesc() {
-      const content = document.getElementById('desc-content');
-      const arrow = document.getElementById('desc-arrow');
-      if (content.classList.contains('open')) {
-        content.classList.remove('open');
-        arrow.textContent = '▼';
-      } else {
-        content.classList.add('open');
-        arrow.textContent = '▲';
-      }
-    }
-
-    function scrollToBottom() {
-      const body = document.querySelector('.modal-body');
-      if (body) setTimeout(() => { body.scrollTop = body.scrollHeight; }, 300);
-    }
-
     async function addToMyList(bookId) {
       await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: bookId, status: 'want_to_read' }, { onConflict: 'user_id,book_id' });
       loadAllBooks();
-      openBook(bookId); 
+      openBook(bookId);
     }
 
     async function loadChapters() {
@@ -694,25 +679,30 @@
       (msgs || []).forEach(m => { if (m.chapter) chapters.add(m.chapter); });
 
       const tabsContainer = document.getElementById('chapter-tabs');
+      if (!tabsContainer) return;
       tabsContainer.innerHTML = Array.from(chapters).map(chap => `
-        <div class="chapter-tab ${chap === currentChapter ? 'active' : ''}" onclick="switchChapter('${escapeHtml(chap).replace(/'/g, "\\'")}')">
-          ${escapeHtml(chap)}
-        </div>
+        <div class="chapter-tab ${chap === currentChapter ? 'active' : ''}" data-chapter="${escapeHtml(chap).replace(/"/g, '&quot;')}">${escapeHtml(chap)}</div>
       `).join('');
+
+      tabsContainer.onclick = e => {
+        const tab = e.target.closest('.chapter-tab');
+        if (tab) switchChapter(tab.dataset.chapter);
+      };
+
+      const active = tabsContainer.querySelector('.active');
+      if (active) active.scrollIntoView({ inline: 'center', block: 'nearest' });
     }
 
     async function addChapter() {
-      const chapName = document.getElementById('new-chapter-input').value.trim();
+      const chapName = (prompt('Название новой главы:') || '').trim();
       if (!chapName) return;
-      
+
       await sb.from('messages').insert({
         book_id: currentBookId, user_id: currentUser.id, user_email: currentUserName,
         chapter: chapName, content: `Создана глава "${chapName}"`, is_spoiler: false
       });
 
-      document.getElementById('new-chapter-input').value = '';
-      await loadChapters();
-      switchChapter(chapName);
+      await switchChapter(chapName);
     }
 
     async function switchChapter(chapName) {
@@ -744,105 +734,151 @@
     function setupChat(bookId, chapterName) {
       if (currentChannel) sb.removeChannel(currentChannel);
       loadMessages(bookId, chapterName);
-      
-      currentChannel = sb.channel(`book-chat-${bookId}-${chapterName}`)
+
+      currentChannel = sb.channel(`book-chat-${bookId}-${Date.now()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `book_id=eq.${bookId}` }, payload => {
-          const msg = payload.new || payload.old;
+          if (payload.eventType === 'DELETE') {
+            // в DELETE приходит только id
+            delete messagesCache[payload.old.id];
+            removeMessageFromDom(payload.old.id);
+            return;
+          }
+          const msg = payload.new;
           if (msg.chapter !== chapterName) return;
-          if (payload.eventType === 'INSERT') appendMessage(payload.new);
-          else if (payload.eventType === 'UPDATE') updateMessageInDom(payload.new);
-          else if (payload.eventType === 'DELETE') { removeMessageFromDom(payload.old.id); loadMessages(bookId, chapterName); }
+          if (payload.eventType === 'INSERT') appendMessage(msg, msg.user_id === currentUser.id);
+          else if (payload.eventType === 'UPDATE') updateMessageInDom(msg);
         }).subscribe();
     }
 
     async function loadMessages(bookId, chapterName) {
       if (!bookId) return;
       const { data } = await sb.from('messages').select('*').eq('book_id', bookId).eq('chapter', chapterName).order('created_at', { ascending: true });
-      
+
       const area = document.getElementById('chat-area');
       if (!area) return;
       area.innerHTML = '';
-      
+      messagesCache = {};
+
       if (!data || data.length === 0) {
-        area.innerHTML = '<p style="color:var(--text-muted); text-align:center; font-size:14px; margin: 20px 0;">Тут пока тихо...</p>';
+        area.innerHTML = '<p class="empty-chat">Тут пока тихо...</p>';
       } else {
-        data.forEach(appendMessage);
-        setTimeout(() => { const body = document.querySelector('.modal-body'); if (body) body.scrollTop = body.scrollHeight; }, 50);
+        data.forEach(m => appendMessage(m, false));
+        chatScroll(true);
       }
+    }
+
+    function chatScroll(force) {
+      const area = document.getElementById('chat-area');
+      if (!area) return;
+      const nearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 150;
+      if (force || nearBottom) area.scrollTop = area.scrollHeight;
     }
 
     function messageHtml(msg) {
       const isMe = msg.user_id === currentUser.id;
       const displayName = isMe ? 'Вы' : (msg.user_email || 'anon');
       const timeStr = msg.created_at ? formatTime(msg.created_at) : '';
-      
-      let content = msg.content;
-      if (msg.is_spoiler) {
-        content = `<span class="spoiler" onclick="this.classList.toggle('revealed')">${escapeHtml(content)}</span>`;
-      } else {
-        content = escapeHtml(content);
+
+      // Ответ хранится в первой строке: "> Автор: текст...\nсообщение"
+      let text = msg.content || '';
+      let quoteHtml = '';
+      if (text.startsWith('> ')) {
+        const i = text.indexOf('\n');
+        if (i > 0) {
+          quoteHtml = `<div class="reply-quote">${escapeHtml(text.slice(2, i))}</div>`;
+          text = text.slice(i + 1);
+        }
       }
 
-      const actionBtns = `
-        <button onclick="prepareReply(${msg.id}, '${escapeHtml(displayName).replace(/'/g, "\\'")}', '${escapeHtml(msg.content).replace(/'/g, "\\'")}')" title="Ответить">↩️</button>
-        ${isMe || isAdmin() || isOwner() ? `<button onclick="editMessage(${msg.id}, '${escapeHtml(msg.content).replace(/'/g, "\\'")}')" title="Изменить">✏️</button>` : ''}
-        ${isMe || isAdmin() || isOwner() ? `<button onclick="deleteMessage(${msg.id})" title="Удалить">🗑</button>` : ''}
-      `;
+      const body = msg.is_spoiler
+        ? `<span class="spoiler">${escapeHtml(text)}</span>`
+        : escapeHtml(text);
+
+      const canEdit = isMe || isAdmin() || isOwner();
 
       return `
-        <div class="msg-wrapper ${isMe ? 'my-msg' : ''}" id="msg-${msg.id}" data-id="${msg.id}" data-author="${escapeHtml(displayName).replace(/"/g, '&quot;')}" data-text="${escapeHtml(msg.content).replace(/"/g, '&quot;')}">
-          <div class="msg-meta">
-            <span>${escapeHtml(displayName)} • ${timeStr}</span>
-          </div>
-          <div class="msg-bubble">
-            <div class="msg-actions">${actionBtns}</div>
-            ${content}
+        <div class="msg-wrapper ${isMe ? 'my-msg' : ''}" id="msg-${msg.id}" data-id="${msg.id}">
+          <div class="msg-meta">${escapeHtml(displayName)} • ${timeStr}</div>
+          <div class="msg-bubble">${quoteHtml}${body}</div>
+          <div class="msg-actions">
+            <button data-action="reply" title="Ответить">↩️</button>
+            ${canEdit ? `<button data-action="edit" title="Изменить">✏️</button>` : ''}
+            ${canEdit ? `<button data-action="delete" title="Удалить">🗑</button>` : ''}
           </div>
         </div>`;
     }
 
-    function appendMessage(msg) {
-      const area = document.getElementById('chat-area');
-      if (!area) return;
-      const placeholder = area.querySelector('p');
-      if (placeholder) placeholder.remove();
-      
-      const div = document.createElement('div'); 
-      div.innerHTML = messageHtml(msg);
-      const wrapper = div.firstElementChild;
-      area.appendChild(wrapper); 
-      addSwipeListeners(wrapper);
-      scrollToBottom();
-    }
-    
-    function updateMessageInDom(msg) { 
-      const div = document.getElementById(`msg-${msg.id}`); 
-      if (div) {
-        const newEl = document.createElement('div');
-        newEl.innerHTML = messageHtml(msg);
-        const wrapper = newEl.firstElementChild;
-        div.outerHTML = wrapper.outerHTML;
-        addSwipeListeners(document.getElementById(`msg-${msg.id}`));
+    function onChatClick(e) {
+      const wrapper = e.target.closest('.msg-wrapper');
+      if (!wrapper) return;
+      const id = wrapper.dataset.id;
+
+      const btn = e.target.closest('button[data-action]');
+      if (btn) {
+        const msg = messagesCache[id];
+        if (!msg) return;
+        const action = btn.dataset.action;
+        if (action === 'reply') prepareReply(msg);
+        if (action === 'edit') editMessage(msg.id, msg.content);
+        if (action === 'delete') deleteMessage(msg.id);
+        wrapper.classList.remove('show-actions');
+        return;
+      }
+
+      const spoiler = e.target.closest('.spoiler');
+      if (spoiler) { spoiler.classList.toggle('revealed'); return; }
+
+      if (e.target.closest('.msg-bubble')) {
+        wrapper.classList.toggle('show-actions');
       }
     }
-    
-    function removeMessageFromDom(id) { 
-      const div = document.getElementById(`msg-${id}`); 
-      if (div) div.remove(); 
+
+    function appendMessage(msg, forceScroll) {
+      const area = document.getElementById('chat-area');
+      if (!area) return;
+      if (document.getElementById(`msg-${msg.id}`)) return; // защита от дублей
+      const placeholder = area.querySelector('.empty-chat');
+      if (placeholder) placeholder.remove();
+
+      messagesCache[msg.id] = msg;
+      const div = document.createElement('div');
+      div.innerHTML = messageHtml(msg);
+      const wrapper = div.firstElementChild;
+      area.appendChild(wrapper);
+      addSwipeListeners(wrapper);
+      chatScroll(!!forceScroll);
     }
 
+    function updateMessageInDom(msg) {
+      const old = document.getElementById(`msg-${msg.id}`);
+      if (!old) return;
+      messagesCache[msg.id] = msg;
+      const div = document.createElement('div');
+      div.innerHTML = messageHtml(msg);
+      const wrapper = div.firstElementChild;
+      old.replaceWith(wrapper);
+      addSwipeListeners(wrapper);
+    }
+
+    function removeMessageFromDom(id) {
+      const div = document.getElementById(`msg-${id}`);
+      if (div) div.remove();
+      const area = document.getElementById('chat-area');
+      if (area && !area.querySelector('.msg-wrapper')) {
+        area.innerHTML = '<p class="empty-chat">Тут пока тихо...</p>';
+      }
+    }
+
+    /* Свайп влево по сообщению = ответить */
     function addSwipeListeners(element) {
       if (!element) return;
-      let startX = 0;
-      let currentX = 0;
-      let isSwiping = false;
-      let isScrolling = false;
+      let startX = 0, startY = 0, currentX = 0;
+      let isSwiping = false, isScrolling = false;
 
       element.addEventListener('touchstart', e => {
-        startX = e.touches[0].clientX;
-        currentX = startX;
-        isSwiping = false;
-        isScrolling = false;
+        startX = currentX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isSwiping = false; isScrolling = false;
         element.classList.add('swiping');
       }, { passive: true });
 
@@ -850,89 +886,88 @@
         if (isScrolling) return;
         currentX = e.touches[0].clientX;
         const diffX = currentX - startX;
-        const diffY = Math.abs(e.touches[0].clientY - (e.target.getBoundingClientRect().top + e.target.getBoundingClientRect().height / 2));
+        const diffY = e.touches[0].clientY - startY;
 
-        if (!isSwiping && Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) {
-          isSwiping = true;
+        if (!isSwiping) {
+          if (Math.abs(diffY) > 10 && Math.abs(diffY) > Math.abs(diffX)) { isScrolling = true; return; }
+          if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) isSwiping = true;
         }
-
-        if (isSwiping) {
-          if (diffX < 0) {
-            const move = Math.max(diffX, -80);
-            element.style.transform = `translateX(${move}px)`;
-          }
-        } else {
-          isScrolling = true;
+        if (isSwiping && diffX < 0) {
+          element.style.transform = `translateX(${Math.max(diffX, -80)}px)`;
         }
       }, { passive: true });
 
-      element.addEventListener('touchend', e => {
+      element.addEventListener('touchend', () => {
         element.classList.remove('swiping');
         const diffX = currentX - startX;
-
         if (isSwiping && diffX < -50) {
-          const id = element.getAttribute('data-id');
-          const author = element.getAttribute('data-author');
-          const text = element.getAttribute('data-text');
-          prepareReply(id, author, text);
+          const msg = messagesCache[element.dataset.id];
+          if (msg) prepareReply(msg);
         }
-
         element.style.transform = 'translateX(0px)';
-        setTimeout(() => {
-          isSwiping = false;
-          isScrolling = false;
-        }, 100);
+        isSwiping = false; isScrolling = false;
       });
     }
 
-    function prepareReply(msgId, author, text) {
-      replyToMessage = { id: msgId, author, text };
-      document.getElementById('reply-text').innerHTML = `<b>${author}</b>: ${text.substring(0, 30)}...`;
+    function prepareReply(msg) {
+      const author = msg.user_id === currentUser.id ? 'Вы' : (msg.user_email || 'anon');
+      let text = msg.content || '';
+      if (text.startsWith('> ')) { const i = text.indexOf('\n'); if (i > 0) text = text.slice(i + 1); }
+      replyToMessage = { id: msg.id, author, text };
+      const short = text.length > 40 ? text.substring(0, 40) + '…' : text;
+      document.getElementById('reply-text').innerHTML = `<b>${escapeHtml(author)}</b>: ${escapeHtml(short)}`;
       document.getElementById('reply-preview').style.display = 'flex';
       document.getElementById('chat-input').focus();
     }
 
     function cancelReply() {
       replyToMessage = null;
-      document.getElementById('reply-preview').style.display = 'none';
-      document.getElementById('chat-input').blur();
+      const el = document.getElementById('reply-preview');
+      if (el) el.style.display = 'none';
     }
 
     async function sendMessage() {
       const input = document.getElementById('chat-input');
       const content = input.value.trim();
       if (!content || !currentBookId) return;
-      
-      const isSpoiler = document.getElementById('spoiler-check')?.checked || false;
-      
+
       let finalContent = content;
       if (replyToMessage) {
-        finalContent = `> ${replyToMessage.author}: ${replyToMessage.text.substring(0, 20)}...\n${content}`;
+        const q = replyToMessage.text.replace(/\n/g, ' ').substring(0, 30);
+        finalContent = `> ${replyToMessage.author}: ${q}${replyToMessage.text.length > 30 ? '…' : ''}\n${content}`;
       }
 
-      const { error } = await sb.from('messages').insert({ 
+      const isSpoiler = spoilerOn;
+      input.value = '';
+      cancelReply();
+      if (spoilerOn) toggleSpoiler();
+      input.focus(); // клавиатура остаётся открытой
+
+      const { error } = await sb.from('messages').insert({
         book_id: currentBookId, user_id: currentUser.id, user_email: currentUserName,
         chapter: currentChapter, content: finalContent, is_spoiler: isSpoiler
       });
       if (error) alert(error.message);
-      
-      input.value = ''; 
-      if(document.getElementById('spoiler-check')) document.getElementById('spoiler-check').checked = false;
-      cancelReply();
     }
 
     async function editMessage(id, oldContent) {
-      const newContent = prompt('Изменить:', oldContent);
+      let plain = oldContent || '';
+      let prefix = '';
+      if (plain.startsWith('> ')) {
+        const i = plain.indexOf('\n');
+        if (i > 0) { prefix = plain.slice(0, i + 1); plain = plain.slice(i + 1); }
+      }
+      const newContent = prompt('Изменить:', plain);
       if (newContent === null) return;
       const trimmed = newContent.trim(); if (!trimmed) return;
-      await sb.from('messages').update({ content: trimmed }).eq('id', id);
+      await sb.from('messages').update({ content: prefix + trimmed }).eq('id', id);
     }
-    
-    async function deleteMessage(id) { 
+
+    async function deleteMessage(id) {
       if (confirm('Удалить это сообщение?')) {
         await sb.from('messages').delete().eq('id', id);
+        delete messagesCache[id];
         removeMessageFromDom(id);
-        loadMessages(currentBookId, currentChapter);
       }
     }
 
@@ -944,10 +979,12 @@
     }
 
     function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
-    function closeModal() { 
-      document.getElementById('book-modal').classList.add('hidden'); 
-      if (currentChannel) { sb.removeChannel(currentChannel); currentChannel = null; } 
-      currentBookId = null; 
+    function closeModal() {
+      document.getElementById('book-modal').classList.add('hidden');
+      if (currentChannel) { sb.removeChannel(currentChannel); currentChannel = null; }
+      currentBookId = null;
+      spoilerOn = false;
+      replyToMessage = null;
     }
 
     checkSession();
