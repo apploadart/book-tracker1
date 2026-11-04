@@ -199,6 +199,21 @@
       body.modal-open .container { visibility: visible; }
       .msg-wrapper:hover .msg-actions { display: flex; }
     }
+
+    /* === СКРЫВАЕМ БЕЙДЖ NETLIFY НА МОБИЛЬНЫХ === */
+    @media (max-width: 768px) {
+      a[href*="netlify.com"][target="_blank"],
+      a[href*="netlify.com"] img,
+      iframe[src*="netlify.com"],
+      [id*="netlify"],
+      [class*="netlify"] {
+        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        height: 0 !important;
+        width: 0 !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -837,9 +852,7 @@
       }
       const body = msg.is_spoiler ? `<span class="spoiler">${escapeHtml(text)}</span>` : escapeHtml(text);
       
-      // СВОИ сообщения можно редактировать и удалять всегда
       const canEdit = isMe; 
-      // Админ/владелец могут удалять любые сообщения
       const canDelete = isMe || isAdmin() || isOwner();
 
       return `
