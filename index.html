@@ -1026,8 +1026,36 @@
       currentBookId = null; spoilerOn = false; replyToMessage = null;
     }
 
+        // === ЖЕСТКИЙ ФИКС БЕЙДЖА NETLIFY ===
+    setInterval(() => {
+      // Ищем все элементы на странице
+      const allElements = document.querySelectorAll('*');
+      
+      allElements.forEach(el => {
+        // Если внутри элемента есть текст "Powered by Netlify"
+        if (el.textContent && el.textContent.trim() === 'Powered by Netlify') {
+          // И это не основной контейнер сайта (чтобы случайно не удалить всё)
+          if (el.id !== 'book-modal' && el.className !== 'container' && el.tagName !== 'BODY' && el.tagName !== 'HTML') {
+            el.style.display = 'none';
+            el.remove(); // Удаляем из DOM
+          }
+        }
+        
+        // Также скрываем любые ссылки, ведущие на netlify.com
+        if (el.tagName === 'A' && el.href && el.href.includes('netlify.com')) {
+          el.style.display = 'none';
+          el.remove();
+        }
+        
+        // Скрываем iframe от Netlify
+        if (el.tagName === 'IFRAME' && el.src && el.src.includes('netlify')) {
+          el.style.display = 'none';
+          el.remove();
+        }
+      });
+    }, 500); // Проверяем каждые полсекунды
+
     checkSession();
     sb.auth.onAuthStateChange(() => checkSession());
   </script>
 </body>
-</html>
