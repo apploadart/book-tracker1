@@ -836,7 +836,11 @@
         if (i > 0) { quoteHtml = `<div class="reply-quote">${escapeHtml(text.slice(2, i))}</div>`; text = text.slice(i + 1); }
       }
       const body = msg.is_spoiler ? `<span class="spoiler">${escapeHtml(text)}</span>` : escapeHtml(text);
-      const canEdit = isMe || isAdmin() || isOwner();
+      
+      // СВОИ сообщения можно редактировать и удалять всегда
+      const canEdit = isMe; 
+      // Админ/владелец могут удалять любые сообщения
+      const canDelete = isMe || isAdmin() || isOwner();
 
       return `
         <div class="msg-wrapper ${isMe ? 'my-msg' : ''}" id="msg-${msg.id}" data-id="${msg.id}">
@@ -849,7 +853,7 @@
           <div class="msg-actions">
             <button data-action="reply">Ответить</button>
             ${canEdit ? `<button data-action="edit">Изменить</button>` : ''}
-            ${canEdit ? `<button data-action="delete">Удалить</button>` : ''}
+            ${canDelete ? `<button data-action="delete">Удалить</button>` : ''}
           </div>
         </div>`;
     }
