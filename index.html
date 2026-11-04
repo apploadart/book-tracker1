@@ -1,1016 +1,751 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-  <meta name="theme-color" content="#07060d" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>Book Tracker</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Tracker — учёт прочитанных книг</title>
   <style>
     :root {
-      --bg: #07060d; --surface: rgba(255,255,255,0.045); --surface-2: rgba(255,255,255,0.075);
-      --border: rgba(255,255,255,0.09); --text: #f5f3ff; --muted: #8e8aa3;
-      --primary: #8b5cf6; --accent: #d946ef; --danger: #f43f5e; --ok: #34d399; --star: #fbbf24;
-      --grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 55%, #ec4899 100%);
-      --shadow: 0 10px 40px rgba(0,0,0,0.55);
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --border: #e5e7eb;
+      --read: #16a34a;
+      --reading: #2563eb;
+      --to-read: #d97706;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+      --radius: 12px;
     }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html { background: var(--bg); height: 100%; overscroll-behavior: none; }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --border: #334155;
+        --accent: #60a5fa;
+        --accent-hover: #3b82f6;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+    }
+
     body {
-      height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-      background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased;
-    }
-    /* аврора на фоне */
-    body::before {
-      content: ""; position: fixed; inset: -20% -20% auto -20%; height: 70%; z-index: 0; pointer-events: none;
-      background:
-        radial-gradient(40% 50% at 20% 30%, rgba(124,58,237,0.35), transparent 70%),
-        radial-gradient(35% 45% at 80% 20%, rgba(236,72,153,0.22), transparent 70%);
-      filter: blur(30px);
-    }
-    body.modal-open .container { visibility: hidden; }
-    body.modal-open::before { display: none; }
-
-    .container {
-      position: relative; z-index: 1; max-width: 600px; margin: 0 auto; height: 100%;
-      overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
-      padding: max(18px, env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
     }
 
-    /* ---------- общие элементы ---------- */
-    .glass { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-    .card { padding: 20px; margin-bottom: 16px; animation: rise .45s ease both; }
-    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-
-    input, select, textarea {
-      width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; font-size: 16px; outline: none;
-      transition: .2s; margin-bottom: 12px; background: rgba(0,0,0,0.35); color: var(--text); font-family: inherit; -webkit-appearance: none; appearance: none;
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: var(--shadow);
     }
-    select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
-    input::placeholder, textarea::placeholder { color: #5f5b73; }
-    input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(139,92,246,0.18); }
 
-    .btn { display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 14px 20px; border: none; border-radius: 14px; font-size: 16px; font-weight: 650; cursor: pointer; transition: .2s; width: 100%; margin-bottom: 10px; color: var(--text); font-family: inherit; }
-    .btn:active { transform: scale(.97); }
-    .btn:disabled { opacity: .6; }
-    .btn-primary { background: var(--grad); box-shadow: 0 8px 24px rgba(139,92,246,0.35); color: #fff; }
-    .btn-secondary { background: var(--surface-2); border: 1px solid var(--border); }
-    .btn-danger { background: rgba(244,63,94,0.1); color: #fb7185; border: 1px solid rgba(244,63,94,0.25); }
-    .btn-small { width: auto; padding: 10px 14px; font-size: 14px; margin: 0; border-radius: 12px; }
-
-    .icon-btn { background: var(--surface-2); border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); flex-shrink: 0; padding: 0; margin: 0; transition: .2s; }
-    .icon-btn:active { transform: scale(.92); }
-    .icon-btn.active { background: var(--grad); border-color: transparent; }
-    .icon-btn svg { width: 20px; height: 20px; }
-
-    .hidden { display: none !important; }
-    .text-center { text-align: center; }
-    .error-text { color: var(--danger); font-size: 14px; margin: 8px 0 0; font-weight: 500; }
-
-    /* ---------- авторизация ---------- */
-    .auth-logo { width: 64px; height: 64px; margin: 8px auto 16px; border-radius: 20px; background: var(--grad); display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 12px 32px rgba(139,92,246,0.45); }
-    #auth-section { margin-top: 8vh; padding: 28px 22px; }
-
-    /* ---------- профиль ---------- */
-    .profile-header { display: flex; align-items: center; gap: 14px; padding: 8px 0 18px; }
-    .avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--grad); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 21px; text-transform: uppercase; box-shadow: 0 6px 20px rgba(139,92,246,0.45); cursor: pointer; flex-shrink: 0; }
-    .profile-info { min-width: 0; flex: 1; }
-    .profile-info h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.3px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .profile-info h1 span { opacity: .5; font-size: 14px; }
-    .profile-sub { font-size: 13px; color: var(--muted); }
-
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-    .stat { padding: 14px 10px; text-align: center; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); }
-    .stat b { display: block; font-size: 26px; font-weight: 800; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; line-height: 1.1; }
-    .stat small { font-size: 12px; color: var(--muted); }
-
-    .random-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 20px; margin-bottom: 16px; border-radius: 22px; background: linear-gradient(135deg, rgba(124,58,237,0.28), rgba(236,72,153,0.16)); border: 1px solid rgba(168,85,247,0.35); }
-    .random-card h3 { margin: 0 0 2px; font-size: 17px; font-weight: 800; }
-    .random-card p { margin: 0; font-size: 13px; color: #b9b3d1; }
-
-    .section-title { display: flex; justify-content: space-between; align-items: center; margin: 0 0 14px; font-size: 18px; font-weight: 800; }
-    .add-toggle { cursor: pointer; }
-    .add-form { display: none; margin-top: 16px; }
-    .add-form.open { display: block; }
-    .chev { transition: .25s; color: var(--muted); }
-    .add-toggle.open .chev { transform: rotate(180deg); }
-
-    .file-upload { display: block; width: 100%; padding: 14px; border: 1.5px dashed rgba(255,255,255,0.18); border-radius: 14px; text-align: center; cursor: pointer; color: var(--muted); transition: .2s; margin-bottom: 12px; font-size: 14px; }
-    .file-upload input[type="file"] { display: none; }
-
-    /* ---------- библиотека ---------- */
-    .filters { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; padding-bottom: 2px; }
-    .filters::-webkit-scrollbar { display: none; }
-    .chip { white-space: nowrap; padding: 8px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: .2s; }
-    .chip.active { background: var(--grad); border-color: transparent; color: #fff; box-shadow: 0 6px 18px rgba(139,92,246,0.35); }
-
-    .book-item { display: flex; gap: 14px; padding: 12px; margin-bottom: 10px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; transition: .2s; align-items: center; }
-    .book-item:active { transform: scale(.98); background: var(--surface-2); }
-    .book-cover { width: 64px; height: 96px; border-radius: 10px; object-fit: cover; background: linear-gradient(135deg,#2a2440,#171325); flex-shrink: 0; box-shadow: 0 8px 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 26px; }
-    .book-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-    .book-title { font-weight: 700; font-size: 16px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .book-author { font-size: 13px; color: var(--muted); margin-top: 2px; }
-    .meta-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .badge { display: inline-block; padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--surface-2); color: #cfcbe3; }
-    .badge-read { background: rgba(52,211,153,0.14); color: var(--ok); }
-    .badge-finished { background: rgba(168,85,247,0.18); color: #d8b4fe; }
-    .stars { color: var(--star); font-size: 14px; font-weight: 700; letter-spacing: 1px; }
-    .empty { color: var(--muted); text-align: center; padding: 28px 0; font-size: 14px; }
-
-    /* ---------- ЭКРАН КНИГИ / ЧАТ ---------- */
-    .modal { position: fixed; left: 0; right: 0; top: 0; height: 100%; height: 100dvh; background: var(--bg); z-index: 100; display: flex; justify-content: center; overscroll-behavior: none; }
-    .modal-content { width: 100%; max-width: 600px; height: 100%; position: relative; overflow: hidden; background: var(--bg); }
-    .modal-root { height: 100%; display: flex; flex-direction: column; }
-
-    .modal-header { padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); display: flex; gap: 10px; align-items: center; background: rgba(18,15,30,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-    .head-cover { width: 36px; height: 52px; border-radius: 7px; object-fit: cover; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
-    .head-text { flex: 1; min-width: 0; }
-    .head-text h2 { margin: 0; font-size: 16px; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .head-author { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .info-panel { display: none; flex-shrink: 0; max-height: 50%; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 14px; background: rgba(18,15,30,0.95); border-bottom: 1px solid var(--border); }
-    .info-panel.open { display: block; animation: rise .25s ease; }
-    .desc-text { font-size: 14px; color: #b9b3d1; line-height: 1.6; margin-bottom: 14px; white-space: pre-wrap; }
-    .lbl { font-weight: 700; font-size: 11px; margin-bottom: 6px; display: block; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
-    .info-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-    .chapter-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; flex-shrink: 0; background: rgba(12,10,22,0.9); border-bottom: 1px solid var(--border); }
-    .chapter-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; flex: 1; -webkit-overflow-scrolling: touch; }
-    .chapter-tabs::-webkit-scrollbar { display: none; }
-    .chapter-tab { white-space: nowrap; padding: 6px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: .2s; }
-    .chapter-tab.active { background: var(--grad); border-color: transparent; color: #fff; }
-    .chapter-bar .icon-btn { width: 32px; height: 32px; }
-    .chapter-bar .icon-btn svg { width: 16px; height: 16px; }
-
-    /* сообщения: единственная скроллящаяся зона; короткий чат прижат к низу */
-    .chat-messages {
-      flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
-      padding: 14px 12px; display: flex; flex-direction: column; gap: 6px;
-      background: radial-gradient(60% 40% at 50% 0%, rgba(124,58,237,0.10), transparent 70%), #0a0813;
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
     }
-    .chat-messages > :first-child { margin-top: auto; }
 
-    .msg-wrapper { display: flex; flex-direction: column; max-width: 82%; align-self: flex-start; transition: transform .12s ease-out; touch-action: pan-y; flex-shrink: 0; animation: pop .2s ease; }
-    @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
-    .msg-wrapper.my-msg { align-self: flex-end; }
-    .msg-wrapper.swiping { transition: none; }
+    .brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+      text-decoration: none;
+    }
 
-    .msg-bubble { padding: 8px 12px 6px; border-radius: 18px 18px 18px 6px; font-size: 15px; line-height: 1.4; background: #1c1830; border: 1px solid var(--border); word-wrap: break-word; overflow-wrap: anywhere; cursor: pointer; }
-    .msg-wrapper.my-msg .msg-bubble { background: linear-gradient(135deg, #7c3aed, #9d4edd); border-color: transparent; border-radius: 18px 18px 6px 18px; color: #fff; box-shadow: 0 6px 18px rgba(124,58,237,0.25); }
-    .msg-author { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
-    .msg-text { white-space: pre-wrap; }
-    .msg-time { font-size: 10.5px; opacity: .55; text-align: right; margin-top: 2px; }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 2rem 1rem 4rem;
+    }
 
-    .reply-quote { background: rgba(0,0,0,0.25); border-left: 3px solid #e9d5ff; padding: 4px 8px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; color: #ddd6f3; white-space: normal; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
 
-    .msg-actions { display: none; gap: 6px; margin-top: 5px; }
-    .msg-wrapper.my-msg .msg-actions { justify-content: flex-end; }
-    .msg-wrapper.show-actions .msg-actions { display: flex; }
-    .msg-actions button { background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; font-size: 12px; font-weight: 600; padding: 6px 12px; color: var(--text); border-radius: 999px; font-family: inherit; }
-    .msg-actions button[data-action="delete"] { color: #fb7185; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
 
-    .spoiler { background: #3b3558; color: transparent; cursor: pointer; border-radius: 6px; padding: 0 6px; user-select: none; transition: .2s; }
-    .spoiler.revealed { background: transparent; color: inherit; }
-    .empty-chat { color: var(--muted); text-align: center; font-size: 14px; margin: auto; }
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
 
-    .chat-input-area { flex-shrink: 0; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); background: rgba(18,15,30,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border); }
-    .reply-preview { display: none; background: var(--surface); border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 10px; font-size: 13px; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-    .reply-preview span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-    .reply-preview button { background: none; border: none; color: var(--text); cursor: pointer; flex-shrink: 0; display: flex; padding: 2px; }
-    .reply-preview svg { width: 16px; height: 16px; }
-    .input-row { display: flex; gap: 8px; align-items: center; }
-    .input-row input { margin-bottom: 0; border-radius: 999px; padding: 12px 18px; flex: 1; min-width: 0; background: rgba(0,0,0,0.4); }
-    .input-row .icon-btn { width: 44px; height: 44px; }
-    .send-btn { background: var(--grad) !important; border: none !important; box-shadow: 0 6px 18px rgba(139,92,246,0.4); }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
 
-    /* ---------- уведомление ---------- */
-    .system-alert { position: fixed; top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: var(--grad); color: #fff; padding: 14px 16px 14px 18px; border-radius: 18px; box-shadow: 0 12px 34px rgba(124,58,237,0.5); z-index: 1000; display: flex; justify-content: space-between; align-items: center; gap: 14px; width: calc(100% - 32px); max-width: 500px; animation: slideDown .4s ease; }
-    @keyframes slideDown { from { transform: translate(-50%, -120%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-    .system-alert span { font-size: 15px; font-weight: 500; line-height: 1.3; }
-    .system-alert button { background: rgba(255,255,255,0.22); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; }
-    .system-alert svg { width: 16px; height: 16px; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      align-items: center;
+    }
 
-    @media (max-width: 599px) { .modal { top: var(--app-top, 0px); height: var(--app-h, 100dvh); } }
-    @media (min-width: 600px) {
-      .modal { align-items: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); }
-      .modal-content { height: 90vh; border-radius: 26px; border: 1px solid var(--border); box-shadow: var(--shadow); }
-      body.modal-open .container { visibility: visible; }
-      .msg-wrapper:hover .msg-actions { display: flex; }
+    .search {
+      flex: 1 1 200px;
+      min-width: 150px;
+    }
+
+    .search input {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .search input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .filter {
+      min-width: 150px;
+    }
+
+    .filter select {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.1s, filter 0.2s;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); filter: brightness(1.05); }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 1.5rem 0 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.75rem;
+      align-items: end;
+    }
+
+    .form-full { grid-column: 1 / -1; }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .field label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .field input, .field select, .field textarea {
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .stars {
+      display: flex;
+      flex-direction: row-reverse;
+      gap: 0.2rem;
+      align-items: center;
+    }
+
+    .stars input { display: none; }
+
+    .stars label {
+      cursor: pointer;
+      font-size: 1.4rem;
+      color: #cbd5e1;
+      padding: 0 0.1rem;
+      transition: color 0.2s;
+    }
+
+    .stars label:hover,
+    .stars label:hover ~ label,
+    .stars input:checked ~ label {
+      color: #fbbf24;
+    }
+
+    .books {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .book-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .book-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .cover {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      border-radius: 8px;
+      background: var(--border);
+      border: 1px solid rgba(0,0,0,0.06);
+      margin-bottom: 0.25rem;
+    }
+
+    .book-title {
+      font-weight: 700;
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+
+    .book-author {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .book-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-read { background: #ecfdf5; color: var(--read); }
+    .status-reading { background: #eff6ff; color: var(--reading); }
+    .status-to-read { background: #fffbeb; color: var(--to-read); }
+
+    .rating-stars {
+      font-size: 1.2rem;
+      color: #cbd5e1;
+    }
+
+    .rating-stars .filled { color: #fbbf24; }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: auto;
+      padding-top: 0.4rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .actions .btn {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-outline:hover { background: var(--bg); }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .btn-danger:hover { background: #fecaca; }
+
+    .empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+
+    .empty p { font-size: 1.1rem; margin-bottom: 0.75rem; }
+
+    /* Dialog */
+    dialog {
+      border: none;
+      border-radius: var(--radius);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
+      padding: 0;
+      max-width: 420px;
+      width: 90%;
+      background: var(--surface);
+    }
+
+    dialog::backdrop {
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(4px);
+    }
+
+    .dialog-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dialog-header h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .close-dialog {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .dialog-body {
+      padding: 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    .dialog-footer {
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    .help {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    @media (max-width: 480px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .stats .stat-card:nth-child(3) { grid-column: 1 / -1; justify-self: center; width: 140px; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .search { min-width: auto; }
+      .filter { min-width: auto; }
     }
   </style>
 </head>
 <body>
-  <div id="global-alert" class="system-alert hidden">
-    <span id="alert-text"></span>
-    <button onclick="dismissAlert()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-  </div>
 
-  <div class="container">
+  <header>
+    <div class="header-inner">
+      <a href="#" class="brand">📚 Book Tracker</a>
+      <span id="user-greeting"></span>
+    </div>
+  </header>
 
-    <div id="profile-header" class="profile-header hidden">
-      <div class="avatar" id="user-avatar" onclick="changeName()">U</div>
-      <div class="profile-info">
-        <h1 id="user-name" onclick="changeName()">User</h1>
-        <div class="profile-sub">Мой книжный трекер</div>
+  <main>
+    <div class="stats" id="stats"></div>
+
+    <div class="toolbar">
+      <div class="search">
+        <input type="search" id="search" placeholder="Поиск по названию или автору" aria-label="Поиск книг">
       </div>
-      <button class="btn btn-secondary btn-small" onclick="signOut()">Выйти</button>
+      <div class="filter">
+        <select id="status-filter" aria-label="Фильтр по статусу">
+          <option value="all">Все книги</option>
+          <option value="to-read">Хочу прочитать</option>
+          <option value="reading">Читаю сейчас</option>
+          <option value="read">Прочитано</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="open-add">Добавить книгу</button>
     </div>
 
-    <div id="auth-section" class="glass card">
-      <div class="auth-logo">📚</div>
-      <h2 class="text-center" style="margin:0 0 4px; font-weight:800; font-size:26px;">С возвращением</h2>
-      <p class="text-center" style="color:var(--muted); font-size:15px; margin:0 0 22px;">Войдите по ID или создайте новый</p>
-      <input id="login-id" placeholder="Ваш ID (логин)" autocapitalize="none" autocomplete="username" />
-      <input id="login-password" type="password" placeholder="Пароль (мин. 6 символов)" autocomplete="current-password" />
-      <button class="btn btn-primary" onclick="signIn()">Войти</button>
-      <button class="btn btn-secondary" onclick="signUp()">Создать аккаунт</button>
-      <p id="auth-msg" class="error-text text-center"></p>
+    <form id="add-form" class="form-card" novalidate>
+      <input type="hidden" id="edit-id">
+      <div class="field form-full">
+        <label for="title">Название книги <span style="color:#dc2626">*</span></label>
+        <input type="text" id="title" required maxlength="200" placeholder="Например: Чистый код">
+      </div>
+      <div class="field">
+        <label for="author">Автор</label>
+        <input type="text" id="author" maxlength="150" placeholder="Фамилия Имя">
+      </div>
+      <div class="field">
+        <label for="pages">Страниц</label>
+        <input type="number" id="pages" min="0" placeholder="0">
+      </div>
+      <div class="field">
+        <label for="status">Статус</label>
+        <select id="status">
+          <option value="to-read">Хочу прочитать</option>
+          <option value="reading">Читаю сейчас</option>
+          <option value="read">Прочитано</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="cover">Обложка (ссылка на картинку)</label>
+        <input type="url" id="cover" placeholder="https://example.com/cover.jpg">
+        <p class="help">Можно оставить пустым — будет заглушка.</p>
+      </div>
+      <div class="field">
+        <label class="stars-label" for="rating">Оценка</label>
+        <div class="stars" id="stars">
+          <input type="radio" name="rating" id="star5" value="5"><label for="star5">★</label>
+          <input type="radio" name="rating" id="star4" value="4"><label for="star4">★</label>
+          <input type="radio" name="rating" id="star3" value="3"><label for="star3">★</label>
+          <input type="radio" name="rating" id="star2" value="2"><label for="star2">★</label>
+          <input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="date-read">Дата прочтения</label>
+        <input type="date" id="date-read">
+      </div>
+      <div class="field form-full">
+        <label for="notes">Заметки</label>
+        <textarea id="notes" rows="3" placeholder="Ваши мысли о книге…"></textarea>
+      </div>
+      <div class="field form-full" style="display:flex; gap:0.5rem; justify-content:flex-end;">
+        <button type="button" class="btn btn-outline" id="cancel-edit">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить книгу</button>
+      </div>
+    </form>
+
+    <h2 class="section-title" id="list-title">Книги</h2>
+    <div class="books" id="books-list"></div>
+  </main>
+
+  <dialog id="delete-dialog">
+    <div class="dialog-header">
+      <h2>Удалить книгу?</h2>
+      <button class="close-dialog" id="close-delete">×</button>
     </div>
-
-    <div id="main-section" class="hidden">
-
-      <div class="stats">
-        <div class="stat"><b id="stat-want">0</b><small>Хочу</small></div>
-        <div class="stat"><b id="stat-read">0</b><small>Читаю</small></div>
-        <div class="stat"><b id="stat-fin">0</b><small>Прочитано</small></div>
-      </div>
-
-      <div id="owner-panel" class="glass card hidden" style="border-color: rgba(217,70,239,0.4);">
-        <h3 style="margin:0 0 6px; font-size:16px; color: var(--accent);">👑 Панель владельца</h3>
-        <p style="font-size:13px; color:var(--muted); margin:0 0 12px;">Системное уведомление (увидят все при входе):</p>
-        <textarea id="alert-input" placeholder="Текст уведомления..." rows="2"></textarea>
-        <button class="btn btn-primary" style="margin-bottom:0" onclick="sendSystemAlert()">Отправить</button>
-      </div>
-
-      <div class="random-card">
-        <div>
-          <h3>Что почитать?</h3>
-          <p>Случайная книга из «Хочу»</p>
-        </div>
-        <button class="btn btn-primary btn-small" onclick="randomizeBook(this)">🎲 Крутить</button>
-      </div>
-
-      <div class="glass card">
-        <div class="section-title add-toggle" id="add-toggle" onclick="toggleAdd()" style="margin:0;">
-          <span>➕ Добавить книгу</span>
-          <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="add-form" id="add-form">
-          <input id="add-title" placeholder="Название книги" />
-          <input id="add-author" placeholder="Автор" />
-          <textarea id="add-desc" placeholder="Описание (необязательно)" rows="3" style="resize:none;"></textarea>
-          <label class="file-upload" id="file-label">
-            <span id="file-text">📸 Выбрать обложку с устройства</span>
-            <input type="file" id="add-cover-file" accept="image/*" onchange="updateFileName(this)" />
-          </label>
-          <button class="btn btn-primary" style="margin-bottom:0" onclick="addBookManually()">Добавить в библиотеку</button>
-        </div>
-      </div>
-
-      <div class="glass card">
-        <h3 class="section-title">📖 Библиотека</h3>
-        <div class="filters" id="filters">
-          <div class="chip active" data-f="all">Все</div>
-          <div class="chip" data-f="want_to_read">Хочу</div>
-          <div class="chip" data-f="reading">Читаю</div>
-          <div class="chip" data-f="finished">Прочитано</div>
-        </div>
-        <div id="all-books"></div>
-      </div>
+    <div class="dialog-body">
+      <p id="delete-title"></p>
+      <p class="help">Это действие нельзя отменить.</p>
     </div>
-  </div>
-
-  <div id="book-modal" class="modal hidden">
-    <div class="modal-content">
-      <div id="modal-content-root" class="modal-root"></div>
+    <div class="dialog-footer">
+      <button class="btn btn-outline" id="cancel-delete">Отмена</button>
+      <button class="btn btn-danger" id="confirm-delete">Удалить</button>
     </div>
-  </div>
+  </dialog>
 
   <script>
-    const SUPABASE_URL = 'https://urfleyxdtffzbznvqzqr.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_uBtzu9m4mdmxT1f946_G2g_FpWwi31t';
-    const FAKE_DOMAIN = 'book-tracker.local';
-    const { createClient } = supabase;
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    const ICON = {
-      send: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>',
-      back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
-      close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
-      info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
-      plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
-      eyeoff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>'
+    const STATUS_LABELS = {
+      to-read: 'Хочу прочитать',
+      reading: 'Читаю сейчас',
+      read: 'Прочитано'
     };
 
-    let currentUser = null;
-    let currentUserName = '';
-    let currentBookId = null;
-    let currentChapter = 'Общий чат';
-    let currentChannel = null;
-    let selectedFile = null;
-    let replyToMessage = null;
-    let currentAlertId = null;
-    let messagesCache = {};
-    let libBooks = [], libUserMap = {}, libFilter = 'all';
-    let spoilerOn = false;
+    const STORAGE_KEY = 'book-tracker-books';
 
-    /* ===== Высота модалки = видимая область (над клавиатурой) ===== */
-    function syncViewport() {
-      const vv = window.visualViewport;
-      if (!vv) return;
-      const root = document.documentElement;
-      root.style.setProperty('--app-h', vv.height + 'px');
-      root.style.setProperty('--app-top', vv.offsetTop + 'px');
-      if (currentBookId) {
-        if (window.scrollY !== 0) window.scrollTo(0, 0);
-        const area = document.getElementById('chat-area');
-        if (area && document.activeElement && document.activeElement.id === 'chat-input') {
-          area.scrollTop = area.scrollHeight;
-        }
-      }
-    }
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', syncViewport);
-      window.visualViewport.addEventListener('scroll', syncViewport);
-    }
-    syncViewport();
+    let books = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
-    // Запрещаем "резиновый" скролл страницы за пределами скроллящихся зон модалки
-    document.getElementById('book-modal').addEventListener('touchmove', e => {
-      if (!e.target.closest('.chat-messages, .info-panel, .chapter-tabs')) e.preventDefault();
-    }, { passive: false });
+    const els = {
+      stats: document.getElementById('stats'),
+      list: document.getElementById('books-list'),
+      search: document.getElementById('search'),
+      statusFilter: document.getElementById('status-filter'),
+      addForm: document.getElementById('add-form'),
+      openAdd: document.getElementById('open-add'),
+      cancelEdit: document.getElementById('cancel-edit'),
+      editId: document.getElementById('edit-id'),
+      title: document.getElementById('title'),
+      author: document.getElementById('author'),
+      pages: document.getElementById('pages'),
+      status: document.getElementById('status'),
+      cover: document.getElementById('cover'),
+      ratingInputs: document.querySelectorAll('#stars input'),
+      dateRead: document.getElementById('date-read'),
+      notes: document.getElementById('notes'),
+      deleteDialog: document.getElementById('delete-dialog'),
+      deleteTitle: document.getElementById('delete-title'),
+      closeDelete: document.getElementById('close-delete'),
+      cancelDelete: document.getElementById('cancel-delete'),
+      confirmDelete: document.getElementById('confirm-delete')
+    };
 
-    function isValidLogin(login) { return /^[a-zA-Z0-9_-]{3,30}$/.test(login); }
-    function loginToEmail(login) { return login + '@' + FAKE_DOMAIN; }
-    function emailToLogin(email) {
-      if (!email) return '';
-      if (email.endsWith('@' + FAKE_DOMAIN)) return email.slice(0, -(FAKE_DOMAIN.length + 1));
-      return email;
-    }
-    function formatTime(iso) {
-      if (!iso) return '';
-      return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    function nameColor(name) {
-      let h = 0; for (const c of String(name)) h = (h * 31 + c.charCodeAt(0)) % 360;
-      return `hsl(${h}, 75%, 72%)`;
+    let deleteTargetId = null;
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+      render();
     }
 
-    async function changeName() {
-      const newName = prompt('Введите новое имя:', currentUserName);
-      if (newName === null) return;
-      const trimmed = newName.trim();
-      if (!trimmed) return alert('Имя не может быть пустым');
-      const { error } = await sb.auth.updateUser({ data: { display_name: trimmed } });
-      if (error) return alert('Ошибка сохранения: ' + error.message);
-      currentUserName = trimmed;
-      document.getElementById('user-name').innerHTML = `${escapeHtml(trimmed)} <span>✏️</span>`;
-      document.getElementById('user-avatar').textContent = trimmed.charAt(0);
-      if (currentBookId) loadMessages(currentBookId, currentChapter);
+    function statusColor(status) {
+      return { read: 'var(--read)', reading: 'var(--reading)', 'to-read': 'var(--to-read)' }[status] || 'var(--muted)';
     }
 
-    function toggleAdd() {
-      document.getElementById('add-form').classList.toggle('open');
-      document.getElementById('add-toggle').classList.toggle('open');
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
 
-    function updateFileName(input) {
-      const label = document.getElementById('file-text');
-      const box = document.getElementById('file-label');
-      if (input.files && input.files[0]) {
-        selectedFile = input.files[0];
-        label.textContent = '✅ ' + selectedFile.name;
-        box.style.borderColor = '#8b5cf6'; box.style.color = '#c4b5fd';
-      } else {
-        selectedFile = null;
-        label.textContent = '📸 Выбрать обложку с устройства';
-        box.style.borderColor = ''; box.style.color = '';
-      }
+    function defaultCover() {
+      return 'https://via.placeholder.com/150x220?text=Book';
     }
 
-    async function uploadCover(file) {
-      const ext = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
-      const { error } = await sb.storage.from('covers').upload(fileName, file);
-      if (error) throw error;
-      const { data } = sb.storage.from('covers').getPublicUrl(fileName);
-      return data.publicUrl;
-    }
+    function render() {
+      const query = els.search.value.toLowerCase().trim();
+      const filter = els.statusFilter.value;
 
-    async function signUp() {
-      const login = document.getElementById('login-id').value.trim();
-      const password = document.getElementById('login-password').value;
-      const msg = document.getElementById('auth-msg');
-      msg.style.color = '';
-      if (login.toLowerCase() === 'admin' || login.toLowerCase() === 'owner') { msg.textContent = 'Этот логин занят.'; return; }
-      if (!isValidLogin(login)) { msg.textContent = 'ID: 3–30 символов (латиница, цифры, _ -)'; return; }
-      if (password.length < 6) { msg.textContent = 'Пароль от 6 символов'; return; }
-      const { error } = await sb.auth.signUp({ email: loginToEmail(login), password, options: { data: { display_name: login } } });
-      if (error) { msg.textContent = error.message; return; }
-      msg.style.color = '#34d399'; msg.textContent = 'Успех! Заходим...';
-      setTimeout(checkSession, 800);
-    }
-
-    async function signIn() {
-      const login = document.getElementById('login-id').value.trim();
-      const password = document.getElementById('login-password').value;
-      const msg = document.getElementById('auth-msg');
-      msg.style.color = '';
-
-      if (login.toLowerCase() === 'owner') {
-        const { error } = await sb.auth.signInWithPassword({ email: loginToEmail('owner'), password });
-        if (error) { msg.textContent = 'Неверный пароль владельца.'; return; }
-        msg.textContent = ''; checkSession(); return;
-      }
-      if (login.toLowerCase() === 'admin') {
-        const { error } = await sb.auth.signInWithPassword({ email: loginToEmail('admin'), password });
-        if (error) { msg.textContent = 'Неверный пароль админа.'; return; }
-        msg.textContent = ''; checkSession(); return;
-      }
-      if (!isValidLogin(login)) { msg.textContent = 'Некорректный ID'; return; }
-      const { error } = await sb.auth.signInWithPassword({ email: loginToEmail(login), password });
-      if (error) { msg.textContent = 'Неверный ID или пароль'; return; }
-      msg.textContent = ''; checkSession();
-    }
-
-    async function signOut() {
-      if (currentChannel) sb.removeChannel(currentChannel);
-      await sb.auth.signOut();
-      checkSession();
-    }
-
-    async function checkSession() {
-      const { data: { session } } = await sb.auth.getSession();
-      if (session) {
-        currentUser = session.user;
-        currentUserName = currentUser.user_metadata?.display_name || emailToLogin(currentUser.email);
-        const loginName = emailToLogin(currentUser.email).toLowerCase();
-
-        document.getElementById('auth-section').classList.add('hidden');
-        document.getElementById('main-section').classList.remove('hidden');
-        document.getElementById('profile-header').classList.remove('hidden');
-        document.getElementById('user-name').innerHTML = `${escapeHtml(currentUserName)} <span>✏️</span>`;
-        document.getElementById('user-avatar').textContent = currentUserName.charAt(0);
-        document.getElementById('owner-panel').classList.toggle('hidden', loginName !== 'owner');
-
-        checkUnreadAlerts();
-        loadAllBooks();
-      } else {
-        currentUser = null;
-        document.getElementById('auth-section').classList.remove('hidden');
-        document.getElementById('main-section').classList.add('hidden');
-        document.getElementById('profile-header').classList.add('hidden');
-        document.getElementById('owner-panel').classList.add('hidden');
-        document.getElementById('global-alert').classList.add('hidden');
-      }
-    }
-
-    function isAdmin() { return emailToLogin(currentUser?.email).toLowerCase() === 'admin'; }
-    function isOwner() { return emailToLogin(currentUser?.email).toLowerCase() === 'owner'; }
-
-    async function checkUnreadAlerts() {
-      const { data } = await sb.from('system_alerts').select('*').order('created_at', { ascending: false }).limit(1);
-      if (data && data.length > 0) {
-        const latest = data[0];
-        const read = JSON.parse(localStorage.getItem('read_alerts') || '[]');
-        if (!read.includes(latest.id)) {
-          currentAlertId = latest.id;
-          document.getElementById('alert-text').textContent = latest.content;
-          document.getElementById('global-alert').classList.remove('hidden');
-        }
-      }
-    }
-
-    function dismissAlert() {
-      document.getElementById('global-alert').classList.add('hidden');
-      if (currentAlertId) {
-        const read = JSON.parse(localStorage.getItem('read_alerts') || '[]');
-        if (!read.includes(currentAlertId)) { read.push(currentAlertId); localStorage.setItem('read_alerts', JSON.stringify(read)); }
-      }
-    }
-
-    async function sendSystemAlert() {
-      const input = document.getElementById('alert-input');
-      const text = input.value.trim();
-      if (!text) return;
-      await sb.from('system_alerts').insert({ content: text });
-      input.value = '';
-      alert('Уведомление отправлено!');
-    }
-
-    async function addBookManually() {
-      const title = document.getElementById('add-title').value.trim();
-      const author = document.getElementById('add-author').value.trim();
-      const description = document.getElementById('add-desc').value.trim();
-      if (!title) return alert('Введите название книги');
-
-      const btn = document.querySelector('button[onclick="addBookManually()"]');
-      const oldText = btn.textContent;
-      btn.textContent = 'Сохраняем...'; btn.disabled = true;
-
-      try {
-        let coverUrl = '';
-        if (selectedFile) coverUrl = await uploadCover(selectedFile);
-        const google_id = 'manual_' + Date.now();
-        const { data, error } = await sb.from('books').insert({
-          google_id, title, authors: author || 'Автор неизвестен', thumbnail: coverUrl, description
-        }).select('id').single();
-        if (error) throw error;
-
-        await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: data.id, status: 'want_to_read' }, { onConflict: 'user_id,book_id', ignoreDuplicates: true });
-
-        ['add-title', 'add-author', 'add-desc'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('add-cover-file').value = '';
-        updateFileName(document.getElementById('add-cover-file'));
-        toggleAdd();
-        loadAllBooks();
-      } catch (err) {
-        alert('Ошибка: ' + err.message);
-      } finally {
-        btn.textContent = oldText; btn.disabled = false;
-      }
-    }
-
-    async function randomizeBook(btn) {
-      const { data: myBooks, error } = await sb.from('user_books').select('book_id').eq('user_id', currentUser.id).eq('status', 'want_to_read');
-      if (error) return alert('Ошибка базы: ' + error.message);
-      if (!myBooks || myBooks.length === 0) return alert('В списке "Хочу" пусто!');
-      const id = myBooks[Math.floor(Math.random() * myBooks.length)].book_id;
-      btn.textContent = '🎲 Ищем...'; btn.disabled = true;
-      setTimeout(() => { openBook(id); btn.textContent = '🎲 Крутить'; btn.disabled = false; }, 600);
-    }
-
-    /* ===== Библиотека ===== */
-    document.getElementById('filters').addEventListener('click', e => {
-      const chip = e.target.closest('.chip');
-      if (!chip) return;
-      libFilter = chip.dataset.f;
-      document.querySelectorAll('#filters .chip').forEach(c => c.classList.toggle('active', c === chip));
-      renderLibrary();
-    });
-
-    async function loadAllBooks() {
-      const { data: books } = await sb.from('books').select('*').order('created_at', { ascending: false });
-      if (!books) return;
-      const { data: userBooks } = await sb.from('user_books').select('*').eq('user_id', currentUser.id);
-
-      libBooks = books;
-      libUserMap = {};
-      (userBooks || []).forEach(ub => { libUserMap[ub.book_id] = ub; });
-
-      let want = 0, read = 0, fin = 0;
-      (userBooks || []).forEach(ub => {
-        if (ub.status === 'want_to_read') want++;
-        if (ub.status === 'reading') read++;
-        if (ub.status === 'finished') fin++;
+      const filtered = books.filter(b => {
+        const matchText = !query ||
+          b.title.toLowerCase().includes(query) ||
+          (b.author || '').toLowerCase().includes(query);
+        const matchStatus = filter === 'all' || b.status === filter;
+        return matchText && matchStatus;
       });
-      document.getElementById('stat-want').textContent = want;
-      document.getElementById('stat-read').textContent = read;
-      document.getElementById('stat-fin').textContent = fin;
 
-      renderLibrary();
-    }
+      // Statistics
+      const total = books.length;
+      const read = books.filter(b => b.status === 'read').length;
+      const reading = books.filter(b => b.status === 'reading').length;
+      const toRead = books.filter(b => b.status === 'to-read').length;
+      const pagesRead = books.filter(b => b.status === 'read')
+        .reduce((sum, b) => sum + (parseInt(b.pages) || 0), 0);
 
-    function renderLibrary() {
-      const container = document.getElementById('all-books');
-      const list = libBooks.filter(b => libFilter === 'all' || libUserMap[b.id]?.status === libFilter);
-
-      if (list.length === 0) {
-        container.innerHTML = `<div class="empty">${libBooks.length === 0 ? 'Тут пока пусто. Добавь первую книгу!' : 'В этой категории пока ничего нет'}</div>`;
-        return;
-      }
-
-      container.innerHTML = list.map(book => {
-        const ub = libUserMap[book.id];
-        const status = ub?.status || null;
-        const stars = ub?.rating ? '★'.repeat(ub.rating) : '';
-        let badge = '<span class="badge">Не в списке</span>';
-        if (status === 'want_to_read') badge = '<span class="badge">📌 Хочу</span>';
-        if (status === 'reading') badge = '<span class="badge badge-read">📖 Читаю</span>';
-        if (status === 'finished') badge = '<span class="badge badge-finished">✅ Прочитано</span>';
-        if (status === 'paused') badge = '<span class="badge">⏸ На паузе</span>';
-        if (status === 'dropped') badge = '<span class="badge">🚫 Брошено</span>';
-
-        const cover = book.thumbnail
-          ? `<img src="${escapeHtml(book.thumbnail)}" class="book-cover" onerror="this.outerHTML='<div class=\\'book-cover\\'>📕</div>'">`
-          : `<div class="book-cover">📕</div>`;
-
-        return `
-          <div class="book-item" onclick="openBook(${book.id})">
-            ${cover}
-            <div class="book-info">
-              <div>
-                <div class="book-title">${escapeHtml(book.title)}</div>
-                <div class="book-author">${escapeHtml(book.authors || '')}</div>
-              </div>
-              <div class="meta-row">${badge}<span class="stars">${stars}</span></div>
-            </div>
-          </div>`;
-      }).join('');
-    }
-
-    /* ===== Экран книги ===== */
-    async function openBook(bookId) {
-      currentBookId = bookId;
-      currentChapter = 'Общий чат';
-      messagesCache = {};
-      document.body.classList.add('modal-open');
-      document.getElementById('book-modal').classList.remove('hidden');
-      document.getElementById('modal-content-root').innerHTML = '<p style="padding:30px; text-align:center; color:var(--muted)">Загрузка...</p>';
-      syncViewport();
-
-      const { data: book } = await sb.from('books').select('*').eq('id', bookId).single();
-      const { data: ub } = await sb.from('user_books').select('*').eq('user_id', currentUser.id).eq('book_id', bookId).maybeSingle();
-
-      const status = ub?.status || null;
-      const rating = ub?.rating || 0;
-      const canModerate = isAdmin() || isOwner();
-
-      let actionBlock = '';
-      if (!status) {
-        actionBlock = `<button class="btn btn-primary" onclick="addToMyList(${book.id})">+ Добавить в мой список</button>`;
-      } else {
-        actionBlock = `
-          <label class="lbl">Статус</label>
-          <select id="status-select" onchange="updateStatus()">
-            <option value="want_to_read" ${status === 'want_to_read' ? 'selected' : ''}>📌 Хочу прочитать</option>
-            <option value="reading" ${status === 'reading' ? 'selected' : ''}>📖 Читаю</option>
-            <option value="paused" ${status === 'paused' ? 'selected' : ''}>⏸ На паузе</option>
-            <option value="dropped" ${status === 'dropped' ? 'selected' : ''}>🚫 Брошено</option>
-            <option value="finished" ${status === 'finished' ? 'selected' : ''}>✅ Завершено</option>
-          </select>
-          <label class="lbl">Оценка</label>
-          <select id="rating-select" onchange="updateRating()">
-            <option value="0">Без оценки</option>
-            ${[1,2,3,4,5].map(n => `<option value="${n}" ${rating === n ? 'selected' : ''}>${'★'.repeat(n)}</option>`).join('')}
-          </select>`;
-      }
-
-      const descHtml = (book.description && book.description.trim())
-        ? `<div class="desc-text">${escapeHtml(book.description)}</div>` : '';
-
-      document.getElementById('modal-content-root').innerHTML = `
-        <div class="modal-header">
-          <button class="icon-btn" onclick="closeModal()" title="Назад">${ICON.back}</button>
-          ${book.thumbnail ? `<img class="head-cover" src="${escapeHtml(book.thumbnail)}" onerror="this.style.display='none'">` : ''}
-          <div class="head-text">
-            <h2>${escapeHtml(book.title)}</h2>
-            <div class="head-author">${escapeHtml(book.authors || '')}</div>
-          </div>
-          <button class="icon-btn" id="info-btn" onclick="toggleInfo()" title="О книге">${ICON.info}</button>
-        </div>
-
-        <div class="info-panel" id="info-panel">
-          ${descHtml}
-          ${actionBlock}
-          <div class="info-actions">
-            <button class="btn btn-secondary btn-small" onclick="editBookInfo()">✏️ Изменить книгу</button>
-            ${canModerate ? `<button class="btn btn-danger btn-small" onclick="clearChat()">🗑 Очистить главу</button>` : ''}
-            ${canModerate ? `<button class="btn btn-danger btn-small" onclick="deleteBook()">Удалить книгу</button>` : ''}
-          </div>
-        </div>
-
-        <div class="chapter-bar">
-          <div class="chapter-tabs" id="chapter-tabs"></div>
-          <button class="icon-btn" onclick="addChapter()" title="Новая глава">${ICON.plus}</button>
-        </div>
-
-        <div class="chat-messages" id="chat-area"></div>
-
-        <div class="chat-input-area">
-          <div class="reply-preview" id="reply-preview">
-            <span id="reply-text"></span>
-            <button onclick="cancelReply()">${ICON.close}</button>
-          </div>
-          <div class="input-row">
-            <button class="icon-btn" id="spoiler-btn" onpointerdown="event.preventDefault()" onclick="toggleSpoiler()" title="Под спойлер">${ICON.eyeoff}</button>
-            <input id="chat-input" placeholder="Сообщение..." enterkeyhint="send" autocomplete="off" onkeydown="if(event.key==='Enter')sendMessage()" onfocus="onChatFocus()" />
-            <button class="icon-btn send-btn" onpointerdown="event.preventDefault()" onclick="sendMessage()">${ICON.send}</button>
-          </div>
-        </div>
+      els.stats.innerHTML = `
+        <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Всего</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--read)">${read}</div><div class="stat-label">Прочитано</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--reading)">${reading}</div><div class="stat-label">Читаю</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--to-read)">${toRead}</div><div class="stat-label">Запланировано</div></div>
+        <div class="stat-card"><div class="stat-value">${pagesRead}</div><div class="stat-label">Страниц прочитано</div></div>
       `;
 
-      document.getElementById('chat-area').addEventListener('click', onChatClick);
-      await loadChapters();
-      setupChat(bookId, currentChapter);
-    }
+      els.list.innerHTML = '';
 
-    function toggleSpoiler() {
-      spoilerOn = !spoilerOn;
-      document.getElementById('spoiler-btn')?.classList.toggle('active', spoilerOn);
-    }
-
-    function toggleInfo() {
-      const open = document.getElementById('info-panel').classList.toggle('open');
-      document.getElementById('info-btn').classList.toggle('active', open);
-    }
-
-    function onChatFocus() {
-      setTimeout(() => { window.scrollTo(0, 0); chatScroll(true); }, 300);
-    }
-
-    async function editBookInfo() {
-      const { data: book } = await sb.from('books').select('*').eq('id', currentBookId).single();
-      if (!book) return;
-      const newTitle = prompt('Изменить название:', book.title); if (newTitle === null) return;
-      const newAuthor = prompt('Изменить автора:', book.authors || ''); if (newAuthor === null) return;
-      const newDesc = prompt('Добавить/изменить описание:', book.description || ''); if (newDesc === null) return;
-
-      const { error } = await sb.from('books').update({
-        title: newTitle.trim() || book.title,
-        authors: newAuthor.trim() || book.authors,
-        description: newDesc.trim() || book.description
-      }).eq('id', currentBookId);
-
-      if (error) alert('Ошибка: ' + error.message);
-      else { alert('Книга обновлена!'); openBook(currentBookId); loadAllBooks(); }
-    }
-
-    async function addToMyList(bookId) {
-      await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: bookId, status: 'want_to_read' }, { onConflict: 'user_id,book_id' });
-      loadAllBooks();
-      openBook(bookId);
-    }
-
-    async function loadChapters() {
-      const { data: msgs } = await sb.from('messages').select('chapter').eq('book_id', currentBookId).not('chapter', 'is', null);
-      const chapters = new Set(['Общий чат']);
-      (msgs || []).forEach(m => { if (m.chapter) chapters.add(m.chapter); });
-
-      const tabs = document.getElementById('chapter-tabs');
-      if (!tabs) return;
-      tabs.innerHTML = Array.from(chapters).map(chap =>
-        `<div class="chapter-tab ${chap === currentChapter ? 'active' : ''}" data-chapter="${escapeHtml(chap).replace(/"/g, '&quot;')}">${escapeHtml(chap)}</div>`
-      ).join('');
-      tabs.onclick = e => { const t = e.target.closest('.chapter-tab'); if (t) switchChapter(t.dataset.chapter); };
-      const active = tabs.querySelector('.active');
-      if (active) active.scrollIntoView({ inline: 'center', block: 'nearest' });
-    }
-
-    async function addChapter() {
-      const name = (prompt('Название новой главы:') || '').trim();
-      if (!name) return;
-      await sb.from('messages').insert({
-        book_id: currentBookId, user_id: currentUser.id, user_email: currentUserName,
-        chapter: name, content: `Создана глава "${name}"`, is_spoiler: false
-      });
-      await switchChapter(name);
-    }
-
-    async function switchChapter(name) {
-      currentChapter = name;
-      cancelReply();
-      await loadChapters();
-      setupChat(currentBookId, name);
-    }
-
-    async function updateStatus() {
-      const v = document.getElementById('status-select').value;
-      await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: currentBookId, status: v }, { onConflict: 'user_id,book_id' });
-      loadAllBooks();
-    }
-
-    async function updateRating() {
-      const r = parseInt(document.getElementById('rating-select').value);
-      await sb.from('user_books').upsert({ user_id: currentUser.id, book_id: currentBookId, rating: r || null }, { onConflict: 'user_id,book_id' });
-      loadAllBooks();
-    }
-
-    async function deleteBook() {
-      if (!isAdmin() && !isOwner()) return;
-      if (!confirm('Удалить книгу из общей базы?')) return;
-      await sb.from('books').delete().eq('id', currentBookId);
-      closeModal(); loadAllBooks();
-    }
-
-    /* ===== Чат ===== */
-    function setupChat(bookId, chapterName) {
-      if (currentChannel) sb.removeChannel(currentChannel);
-      loadMessages(bookId, chapterName);
-
-      currentChannel = sb.channel(`book-chat-${bookId}-${Date.now()}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `book_id=eq.${bookId}` }, payload => {
-          if (payload.eventType === 'DELETE') {
-            delete messagesCache[payload.old.id];
-            removeMessageFromDom(payload.old.id);
-            return;
-          }
-          const msg = payload.new;
-          if (msg.chapter !== chapterName) return;
-          if (payload.eventType === 'INSERT') appendMessage(msg, msg.user_id === currentUser.id);
-          else if (payload.eventType === 'UPDATE') updateMessageInDom(msg);
-        }).subscribe();
-    }
-
-    async function loadMessages(bookId, chapterName) {
-      if (!bookId) return;
-      const { data } = await sb.from('messages').select('*').eq('book_id', bookId).eq('chapter', chapterName).order('created_at', { ascending: true });
-      const area = document.getElementById('chat-area');
-      if (!area) return;
-      area.innerHTML = '';
-      messagesCache = {};
-      if (!data || data.length === 0) {
-        area.innerHTML = '<p class="empty-chat">Тут пока тихо...<br>Напиши первым 👋</p>';
-      } else {
-        data.forEach(m => appendMessage(m, false));
-        chatScroll(true);
-      }
-    }
-
-    function chatScroll(force) {
-      const area = document.getElementById('chat-area');
-      if (!area) return;
-      const near = area.scrollHeight - area.scrollTop - area.clientHeight < 150;
-      if (force || near) area.scrollTop = area.scrollHeight;
-    }
-
-    function messageHtml(msg) {
-      const isMe = msg.user_id === currentUser.id;
-      const name = msg.user_email || 'anon';
-      let text = msg.content || '';
-      let quoteHtml = '';
-      if (text.startsWith('> ')) {
-        const i = text.indexOf('\n');
-        if (i > 0) { quoteHtml = `<div class="reply-quote">${escapeHtml(text.slice(2, i))}</div>`; text = text.slice(i + 1); }
-      }
-      const body = msg.is_spoiler ? `<span class="spoiler">${escapeHtml(text)}</span>` : escapeHtml(text);
-      const canEdit = isMe || isAdmin() || isOwner();
-
-      return `
-        <div class="msg-wrapper ${isMe ? 'my-msg' : ''}" id="msg-${msg.id}" data-id="${msg.id}">
-          <div class="msg-bubble">
-            ${isMe ? '' : `<div class="msg-author" style="color:${nameColor(name)}">${escapeHtml(name)}</div>`}
-            ${quoteHtml}
-            <div class="msg-text">${body}</div>
-            <div class="msg-time">${formatTime(msg.created_at)}</div>
-          </div>
-          <div class="msg-actions">
-            <button data-action="reply">Ответить</button>
-            ${canEdit ? `<button data-action="edit">Изменить</button>` : ''}
-            ${canEdit ? `<button data-action="delete">Удалить</button>` : ''}
-          </div>
-        </div>`;
-    }
-
-    function onChatClick(e) {
-      const wrapper = e.target.closest('.msg-wrapper');
-      if (!wrapper) return;
-      const id = wrapper.dataset.id;
-
-      const btn = e.target.closest('button[data-action]');
-      if (btn) {
-        const msg = messagesCache[id];
-        if (!msg) return;
-        const a = btn.dataset.action;
-        if (a === 'reply') prepareReply(msg);
-        if (a === 'edit') editMessage(msg.id, msg.content);
-        if (a === 'delete') deleteMessage(msg.id);
-        wrapper.classList.remove('show-actions');
+      if (filtered.length === 0) {
+        els.list.innerHTML = `<div class="empty"><p>Книг не найдено.</p><p style="font-size:0.9rem">Добавьте первую книгу или измените фильтр.</p></div>`;
         return;
       }
-      const sp = e.target.closest('.spoiler');
-      if (sp) { sp.classList.toggle('revealed'); return; }
-      if (e.target.closest('.msg-bubble')) wrapper.classList.toggle('show-actions');
-    }
 
-    function appendMessage(msg, forceScroll) {
-      const area = document.getElementById('chat-area');
-      if (!area) return;
-      if (document.getElementById(`msg-${msg.id}`)) return;
-      area.querySelector('.empty-chat')?.remove();
-
-      messagesCache[msg.id] = msg;
-      const div = document.createElement('div');
-      div.innerHTML = messageHtml(msg);
-      const wrapper = div.firstElementChild;
-      area.appendChild(wrapper);
-      addSwipeListeners(wrapper);
-      chatScroll(!!forceScroll);
-    }
-
-    function updateMessageInDom(msg) {
-      const old = document.getElementById(`msg-${msg.id}`);
-      if (!old) return;
-      messagesCache[msg.id] = msg;
-      const div = document.createElement('div');
-      div.innerHTML = messageHtml(msg);
-      const w = div.firstElementChild;
-      w.style.animation = 'none';
-      old.replaceWith(w);
-      addSwipeListeners(w);
-    }
-
-    function removeMessageFromDom(id) {
-      document.getElementById(`msg-${id}`)?.remove();
-      const area = document.getElementById('chat-area');
-      if (area && !area.querySelector('.msg-wrapper')) {
-        area.innerHTML = '<p class="empty-chat">Тут пока тихо...<br>Напиши первым 👋</p>';
+      for (const book of filtered) {
+        const card = document.createElement('article');
+        card.className = 'book-card';
+        card.innerHTML = `
+          <img class="cover" src="${escapeHtml(book.cover || defaultCover())}" alt="Обложка книги ${escapeHtml(book.title)}" loading="lazy"
+               onerror="this.src='${defaultCover()}'; this.onerror=null;">
+          <div class="book-title">${escapeHtml(book.title)}</div>
+          ${book.author ? `<div class="book-author">${escapeHtml(book.author)}</div>` : ''}
+          <div class="book-meta">
+            <span class="status-chip status-${book.status}">${STATUS_LABELS[book.status]}</span>
+            ${book.pages ? `<span>${book.pages} стр.</span>` : ''}
+            ${book.rating ? `<span class="rating-stars">${'★'.repeat(book.rating)}${'☆'.repeat(5 - book.rating)}</span>` : ''}
+          </div>
+          <div class="actions">
+            <button class="btn btn-outline" aria-label="Редактировать ${escapeHtml(book.title)}" onclick="app.editBook('${book.id}')">Редактировать</button>
+            <button class="btn btn-danger" aria-label="Удалить ${escapeHtml(book.title)}" onclick="app.requestDelete('${book.id}')">Удалить</button>
+          </div>
+        `;
+        els.list.appendChild(card);
       }
     }
 
-    /* Свайп влево = ответить */
-    function addSwipeListeners(el) {
-      if (!el) return;
-      let sx = 0, sy = 0, cx = 0, swiping = false, scrolling = false;
-      el.addEventListener('touchstart', e => {
-        sx = cx = e.touches[0].clientX; sy = e.touches[0].clientY;
-        swiping = false; scrolling = false; el.classList.add('swiping');
-      }, { passive: true });
-      el.addEventListener('touchmove', e => {
-        if (scrolling) return;
-        cx = e.touches[0].clientX;
-        const dx = cx - sx, dy = e.touches[0].clientY - sy;
-        if (!swiping) {
-          if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { scrolling = true; return; }
-          if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) swiping = true;
-        }
-        if (swiping && dx < 0) el.style.transform = `translateX(${Math.max(dx, -80)}px)`;
-      }, { passive: true });
-      el.addEventListener('touchend', () => {
-        el.classList.remove('swiping');
-        if (swiping && cx - sx < -50) { const m = messagesCache[el.dataset.id]; if (m) prepareReply(m); }
-        el.style.transform = 'translateX(0)';
-        swiping = false; scrolling = false;
-      });
+    function resetForm() {
+      els.editId.value = '';
+      els.addForm.reset();
+      els.ratingInputs.forEach(i => i.checked = false);
+      els.title.focus();
     }
 
-    function prepareReply(msg) {
-      const author = msg.user_id === currentUser.id ? 'Вы' : (msg.user_email || 'anon');
-      let text = msg.content || '';
-      if (text.startsWith('> ')) { const i = text.indexOf('\n'); if (i > 0) text = text.slice(i + 1); }
-      replyToMessage = { id: msg.id, author, text };
-      const short = text.length > 40 ? text.substring(0, 40) + '…' : text;
-      document.getElementById('reply-text').innerHTML = `<b>${escapeHtml(author)}</b>: ${escapeHtml(short)}`;
-      document.getElementById('reply-preview').style.display = 'flex';
-      document.getElementById('chat-input').focus();
+    function openAdd() {
+      resetForm();
+      els.addForm.style.display = 'grid';
     }
 
-    function cancelReply() {
-      replyToMessage = null;
-      const el = document.getElementById('reply-preview');
-      if (el) el.style.display = 'none';
+    function closeAdd() {
+      els.addForm.style.display = 'none';
+      resetForm();
     }
 
-    async function sendMessage() {
-      const input = document.getElementById('chat-input');
-      const content = input.value.trim();
-      if (!content || !currentBookId) return;
+    function editBook(id) {
+      const book = books.find(b => b.id === id);
+      if (!book) return;
+      els.editId.value = book.id;
+      els.title.value = book.title;
+      els.author.value = book.author || '';
+      els.pages.value = book.pages || '';
+      els.status.value = book.status;
+      els.cover.value = book.cover || '';
+      els.dateRead.value = book.dateRead || '';
+      els.notes.value = book.notes || '';
+      els.ratingInputs.forEach(i => i.checked = i.value === String(book.rating || ''));
+      els.addForm.style.display = 'grid';
+      els.title.focus();
+    }
 
-      let finalContent = content;
-      if (replyToMessage) {
-        const q = replyToMessage.text.replace(/\n/g, ' ').substring(0, 30);
-        finalContent = `> ${replyToMessage.author}: ${q}${replyToMessage.text.length > 30 ? '…' : ''}\n${content}`;
+    function requestDelete(id) {
+      const book = books.find(b => b.id === id);
+      if (!book) return;
+      deleteTargetId = id;
+      els.deleteTitle.textContent = book.title;
+      els.deleteDialog.showModal();
+    }
+
+    function confirmDelete() {
+      if (deleteTargetId === null) return;
+      books = books.filter(b => b.id !== deleteTargetId);
+      deleteTargetId = null;
+      els.deleteDialog.close();
+      save();
+    }
+
+    // Form submit
+    els.addForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = els.editId.value;
+      const ratingInput = document.querySelector('#stars input:checked');
+      const book = {
+        id: id || crypto.randomUUID(),
+        title: els.title.value.trim(),
+        author: els.author.value.trim(),
+        pages: els.pages.value ? parseInt(els.pages.value, 10) : undefined,
+        status: els.status.value,
+        cover: els.cover.value.trim() || undefined,
+        rating: ratingInput ? parseInt(ratingInput.value, 10) : undefined,
+        dateRead: els.dateRead.value || undefined,
+        notes: els.notes.value.trim() || undefined,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (id) {
+        books = books.map(b => b.id === id ? book : b);
+      } else {
+        book.createdAt = book.updatedAt;
+        books.unshift(book);
       }
-      const isSpoiler = spoilerOn;
-      input.value = '';
-      cancelReply();
-      if (spoilerOn) toggleSpoiler();
-      input.focus();
+      save();
+      closeAdd();
+    });
 
-      const { error } = await sb.from('messages').insert({
-        book_id: currentBookId, user_id: currentUser.id, user_email: currentUserName,
-        chapter: currentChapter, content: finalContent, is_spoiler: isSpoiler
-      });
-      if (error) alert(error.message);
-    }
+    els.openAdd.addEventListener('click', () => { openAdd(); els.addForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+    els.cancelEdit.addEventListener('click', closeAdd);
 
-    async function editMessage(id, oldContent) {
-      let plain = oldContent || '', prefix = '';
-      if (plain.startsWith('> ')) { const i = plain.indexOf('\n'); if (i > 0) { prefix = plain.slice(0, i + 1); plain = plain.slice(i + 1); } }
-      const nc = prompt('Изменить:', plain);
-      if (nc === null) return;
-      const t = nc.trim(); if (!t) return;
-      await sb.from('messages').update({ content: prefix + t }).eq('id', id);
-    }
+    els.search.addEventListener('input', render);
+    els.statusFilter.addEventListener('change', render);
 
-    async function deleteMessage(id) {
-      if (confirm('Удалить это сообщение?')) {
-        await sb.from('messages').delete().eq('id', id);
-        delete messagesCache[id];
-        removeMessageFromDom(id);
-      }
-    }
+    // Delete dialog
+    els.closeDelete.addEventListener('click', () => { els.deleteDialog.close(); deleteTargetId = null; });
+    els.cancelDelete.addEventListener('click', () => { els.deleteDialog.close(); deleteTargetId = null; });
+    els.confirmDelete.addEventListener('click', confirmDelete);
+    els.deleteDialog.addEventListener('click', (e) => {
+      if (e.target === els.deleteDialog) { els.deleteDialog.close(); deleteTargetId = null; }
+    });
 
-    async function clearChat() {
-      if (!isAdmin() && !isOwner()) return alert('Только админ или владелец может очищать чат.');
-      if (!confirm(`Удалить ВСЕ сообщения в главе "${currentChapter}"?`)) return;
-      await sb.from('messages').delete().eq('book_id', currentBookId).eq('chapter', currentChapter);
-      setupChat(currentBookId, currentChapter);
-    }
+    // Expose for inline handlers
+    window.app = { editBook, requestDelete };
 
-    function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
-
-    function closeModal() {
-      document.getElementById('book-modal').classList.add('hidden');
-      document.body.classList.remove('modal-open');
-      if (currentChannel) { sb.removeChannel(currentChannel); currentChannel = null; }
-      currentBookId = null; spoilerOn = false; replyToMessage = null;
-    }
-
-    checkSession();
-    sb.auth.onAuthStateChange(() => checkSession());
+    render();
   </script>
 </body>
 </html>
