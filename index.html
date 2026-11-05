@@ -14,6 +14,9 @@
       --primary: #8b5cf6; --accent: #d946ef; --danger: #f43f5e; --ok: #34d399; --star: #fbbf24;
       --grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 55%, #ec4899 100%);
       --shadow: 0 10px 40px rgba(0,0,0,0.55);
+      --transition-fast: .15s ease;
+      --transition-normal: .2s ease;
+      --transition-slow: .3s ease;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html { background: var(--bg); height: 100%; overscroll-behavior: none; }
@@ -22,6 +25,10 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased;
     }
+    body.user-signed-in .container { animation: fadeInUp .6s var(--transition-slow) both; }
+    body.user-signed-in .card { animation: rise .45s var(--transition-normal) both; }
+    body.user-signed-in .chip { animation: fadeIn var(--transition-normal) both; }
+    body.user-signed-in .book-item { animation: fadeInUp .3s var(--transition-normal) both; }
     /* аврора на фоне */
     body::before {
       content: ""; position: fixed; inset: -20% -20% auto -20%; height: 70%; z-index: 0; pointer-events: none;
@@ -37,31 +44,38 @@
       position: relative; z-index: 1; max-width: 600px; margin: 0 auto; height: 100%;
       overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
       padding: max(18px, env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
+      animation: fadeInUp .5s var(--transition-slow) both;
     }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: .5; } 100% { opacity: 1; } }
 
     /* ---------- общие элементы ---------- */
     .glass { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-    .card { padding: 20px; margin-bottom: 16px; animation: rise .45s ease both; }
+    .card { padding: 20px; margin-bottom: 16px; animation: rise .45s var(--transition-normal) both; }
     @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
     input, select, textarea {
       width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; font-size: 16px; outline: none;
-      transition: .2s; margin-bottom: 12px; background: rgba(0,0,0,0.35); color: var(--text); font-family: inherit; -webkit-appearance: none; appearance: none;
+      transition: var(--transition-fast); margin-bottom: 12px; background: rgba(0,0,0,0.35); color: var(--text); font-family: inherit; -webkit-appearance: none; appearance: none;
     }
     select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
     input::placeholder, textarea::placeholder { color: #5f5b73; }
     input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(139,92,246,0.18); }
 
-    .btn { display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 14px 20px; border: none; border-radius: 14px; font-size: 16px; font-weight: 650; cursor: pointer; transition: .2s; width: 100%; margin-bottom: 10px; color: var(--text); font-family: inherit; }
-    .btn:active { transform: scale(.97); }
+    .btn { display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 14px 20px; border: none; border-radius: 14px; font-size: 16px; font-weight: 650; cursor: pointer; transition: var(--transition-normal); width: 100%; margin-bottom: 10px; color: var(--text); font-family: inherit; }
+    .btn:active { transform: scale(.96) var(--transition-fast); }
+    .btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
     .btn:disabled { opacity: .6; }
     .btn-primary { background: var(--grad); box-shadow: 0 8px 24px rgba(139,92,246,0.35); color: #fff; }
     .btn-secondary { background: var(--surface-2); border: 1px solid var(--border); }
     .btn-danger { background: rgba(244,63,94,0.1); color: #fb7185; border: 1px solid rgba(244,63,94,0.25); }
     .btn-small { width: auto; padding: 10px 14px; font-size: 14px; margin: 0; border-radius: 12px; }
 
-    .icon-btn { background: var(--surface-2); border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); flex-shrink: 0; padding: 0; margin: 0; transition: .2s; }
+    .icon-btn { background: var(--surface-2); border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); flex-shrink: 0; padding: 0; margin: 0; transition: var(--transition-fast); }
     .icon-btn:active { transform: scale(.92); }
+    .icon-btn:hover { background: var(--surface); }
     .icon-btn.active { background: var(--grad); border-color: transparent; }
     .icon-btn svg { width: 20px; height: 20px; }
 
@@ -103,10 +117,12 @@
     /* ---------- библиотека ---------- */
     .filters { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; padding-bottom: 2px; }
     .filters::-webkit-scrollbar { display: none; }
-    .chip { white-space: nowrap; padding: 8px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: .2s; }
+    .chip { white-space: nowrap; padding: 8px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition-fast); }
+    .chip:hover:not(.active) { background: var(--surface-2); color: var(--text); }
     .chip.active { background: var(--grad); border-color: transparent; color: #fff; box-shadow: 0 6px 18px rgba(139,92,246,0.35); }
 
-    .book-item { display: flex; gap: 14px; padding: 12px; margin-bottom: 10px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; transition: .2s; align-items: center; }
+    .book-item { display: flex; gap: 14px; padding: 12px; margin-bottom: 10px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; transition: var(--transition-fast); align-items: center; }
+    .book-item:hover:not(:active) { background: var(--surface-2); }
     .book-item:active { transform: scale(.98); background: var(--surface-2); }
     .book-cover { width: 64px; height: 96px; border-radius: 10px; object-fit: cover; background: linear-gradient(135deg,#2a2440,#171325); flex-shrink: 0; box-shadow: 0 8px 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 26px; }
     .book-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -198,21 +214,6 @@
       .modal-content { height: 90vh; border-radius: 26px; border: 1px solid var(--border); box-shadow: var(--shadow); }
       body.modal-open .container { visibility: visible; }
       .msg-wrapper:hover .msg-actions { display: flex; }
-    }
-
-    /* === СКРЫВАЕМ БЕЙДЖ NETLIFY НА МОБИЛЬНЫХ === */
-    @media (max-width: 768px) {
-      a[href*="netlify.com"][target="_blank"],
-      a[href*="netlify.com"] img,
-      iframe[src*="netlify.com"],
-      [id*="netlify"],
-      [class*="netlify"] {
-        display: none !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-        height: 0 !important;
-        width: 0 !important;
-      }
     }
   </style>
 </head>
@@ -464,16 +465,22 @@
         const loginName = emailToLogin(currentUser.email).toLowerCase();
 
         document.getElementById('auth-section').classList.add('hidden');
+        // Добавляем класс для анимации появления
+        document.body.classList.add('user-signed-in');
         document.getElementById('main-section').classList.remove('hidden');
         document.getElementById('profile-header').classList.remove('hidden');
         document.getElementById('user-name').innerHTML = `${escapeHtml(currentUserName)} <span>✏️</span>`;
         document.getElementById('user-avatar').textContent = currentUserName.charAt(0);
         document.getElementById('owner-panel').classList.toggle('hidden', loginName !== 'owner');
 
+        // Запускаем анимацию карт после незначительной задержки
+        setTimeout(() => { document.querySelectorAll('.card').forEach((c, i) => c.style.transitionDelay = `${i * 0.05}s`); }, 50);
+
         checkUnreadAlerts();
         loadAllBooks();
       } else {
         currentUser = null;
+        document.body.classList.remove('user-signed-in');
         document.getElementById('auth-section').classList.remove('hidden');
         document.getElementById('main-section').classList.add('hidden');
         document.getElementById('profile-header').classList.add('hidden');
@@ -1026,36 +1033,8 @@
       currentBookId = null; spoilerOn = false; replyToMessage = null;
     }
 
-        // === ЖЕСТКИЙ ФИКС БЕЙДЖА NETLIFY ===
-    setInterval(() => {
-      // Ищем все элементы на странице
-      const allElements = document.querySelectorAll('*');
-      
-      allElements.forEach(el => {
-        // Если внутри элемента есть текст "Powered by Netlify"
-        if (el.textContent && el.textContent.trim() === 'Powered by Netlify') {
-          // И это не основной контейнер сайта (чтобы случайно не удалить всё)
-          if (el.id !== 'book-modal' && el.className !== 'container' && el.tagName !== 'BODY' && el.tagName !== 'HTML') {
-            el.style.display = 'none';
-            el.remove(); // Удаляем из DOM
-          }
-        }
-        
-        // Также скрываем любые ссылки, ведущие на netlify.com
-        if (el.tagName === 'A' && el.href && el.href.includes('netlify.com')) {
-          el.style.display = 'none';
-          el.remove();
-        }
-        
-        // Скрываем iframe от Netlify
-        if (el.tagName === 'IFRAME' && el.src && el.src.includes('netlify')) {
-          el.style.display = 'none';
-          el.remove();
-        }
-      });
-    }, 500); // Проверяем каждые полсекунды
-
     checkSession();
     sb.auth.onAuthStateChange(() => checkSession());
   </script>
 </body>
+</html>
