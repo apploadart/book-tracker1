@@ -9,11 +9,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --bg: #07060d; --surface: rgba(255,255,255,0.045); --surface-2: rgba(255,255,255,0.075);
-      --border: rgba(255,255,255,0.09); --text: #f5f3ff; --muted: #8e8aa3;
-      --primary: #8b5cf6; --accent: #d946ef; --danger: #f43f5e; --ok: #34d399; --star: #fbbf24;
-      --grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 55%, #ec4899 100%);
-      --shadow: 0 10px 40px rgba(0,0,0,0.55);
+      --bg: #0c0a06; --surface: rgba(25,22,18,0.045); --surface-2: rgba(25,22,18,0.075);
+      --border: rgba(45,38,33,0.1); --text: #e8e4dc; --muted: #6b655c;
+      --primary: #d4a853; --accent: #e8c47a; --danger: #c45a3a; --ok: #7b9e6a; --star: #f5d5a8;
+      --grad: linear-gradient(135deg, #3d302a 0%, #5a4a3a 50%, #7a624a 100%);
+      --shadow: 0 10px 40px rgba(0,0,0,0.4);
       --transition-fast: .15s ease;
       --transition-normal: .2s ease;
       --transition-slow: .3s ease;
@@ -29,13 +29,15 @@
     body.user-signed-in .card { animation: rise .45s var(--transition-normal) both; }
     body.user-signed-in .chip { animation: fadeIn var(--transition-normal) both; }
     body.user-signed-in .book-item { animation: fadeInUp .3s var(--transition-normal) both; }
-    /* аврора на фоне */
+    /* Анимация экрана авторизации при загрузке */
+    #auth-section { animation: authFadeIn .5s var(--transition-slow) ease-out both; }
+    /* Теплый фоновый градиент */
     body::before {
       content: ""; position: fixed; inset: -20% -20% auto -20%; height: 70%; z-index: 0; pointer-events: none;
       background:
-        radial-gradient(40% 50% at 20% 30%, rgba(124,58,237,0.35), transparent 70%),
-        radial-gradient(35% 45% at 80% 20%, rgba(236,72,153,0.22), transparent 70%);
-      filter: blur(30px);
+        radial-gradient(50% 60% at 20% 30%, rgba(61,48,42,0.35), transparent 70%),
+        radial-gradient(45% 55% at 80% 20%, rgba(90,74,58,0.25), transparent 70%);
+      filter: blur(25px);
     }
     body.modal-open .container { visibility: hidden; }
     body.modal-open::before { display: none; }
@@ -50,9 +52,11 @@
     @keyframes slideIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: .5; } 100% { opacity: 1; } }
+    @keyframes authFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
     /* ---------- общие элементы ---------- */
     .glass { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .glass.warm { background: rgba(20,18,15,0.6); border-color: rgba(45,38,33,0.3); }
     .card { padding: 20px; margin-bottom: 16px; animation: rise .45s var(--transition-normal) both; }
     @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
@@ -234,14 +238,14 @@
       <button class="btn btn-secondary btn-small" onclick="signOut()">Выйти</button>
     </div>
 
-    <div id="auth-section" class="glass card">
-      <div class="auth-logo">📚</div>
-      <h2 class="text-center" style="margin:0 0 4px; font-weight:800; font-size:26px;">С возвращением</h2>
-      <p class="text-center" style="color:var(--muted); font-size:15px; margin:0 0 22px;">Войдите по ID или создайте новый</p>
+    <div id="auth-section" class="glass warm card">
+      <div class="auth-logo" style="background: var(--grad); box-shadow: 0 12px 32px rgba(212,168,83,0.45);">📚</div>
+      <h2 class="text-center" style="margin:0 0 4px; font-weight:800; font-size:26px; color: var(--text);">С возвращением</h2>
+      <p class="text-center" style="color: var(--muted); font-size:15px; margin:0 0 22px;">Введите свои данные, чтобы продолжить</p>
       <input id="login-id" placeholder="Ваш ID (логин)" autocapitalize="none" autocomplete="username" />
       <input id="login-password" type="password" placeholder="Пароль (мин. 6 символов)" autocomplete="current-password" />
-      <button class="btn btn-primary" onclick="signIn()">Войти</button>
-      <button class="btn btn-secondary" onclick="signUp()">Создать аккаунт</button>
+      <button class="btn btn-primary" style="background: var(--grad); box-shadow: 0 8px 24px rgba(212,168,83,0.35); color: #0d0a05;" onclick="signIn()">Войти</button>
+      <button class="btn btn-secondary" style="background: var(--surface-2); border-color: var(--border); color: var(--text);" onclick="signUp()">Создать аккаунт</button>
       <p id="auth-msg" class="error-text text-center"></p>
     </div>
 
