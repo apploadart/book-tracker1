@@ -366,7 +366,6 @@
       root.style.setProperty('--app-h', vv.height + 'px');
       root.style.setProperty('--app-top', vv.offsetTop + 'px');
       if (currentBookId) {
-        if (window.scrollY !== 0) window.scrollTo(0, 0);
         const area = document.getElementById('chat-area');
         if (area && document.activeElement && document.activeElement.id === 'chat-input') {
           area.scrollTop = area.scrollHeight;
@@ -763,7 +762,10 @@
     }
 
     function onChatFocus() {
-      setTimeout(() => { window.scrollTo(0, 0); chatScroll(true); }, 300);
+      setTimeout(() => {
+        const area = document.getElementById('chat-area');
+        if (area) area.scrollTop = area.scrollHeight;
+      }, 200);
     }
 
     async function editBookInfo() {
