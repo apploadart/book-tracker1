@@ -214,7 +214,7 @@
     .spoiler.revealed { background: transparent; color: inherit; }
     .empty-chat { color: var(--muted); text-align: center; font-size: 14px; margin: auto; }
 
-    .chat-input-area { flex-shrink: 0; padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); background: rgba(11,11,18,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border); z-index: 10; }
+    .chat-input-area { position: sticky; bottom: 0; flex-shrink: 0; padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); background: rgba(11,11,18,0.98); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-top: 1px solid var(--border); z-index: 20; }
     .reply-preview { display: none; background: var(--surface); border-left: 3px solid var(--primary); padding: 8px 12px; border-radius: 12px; font-size: 13px; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
     .reply-preview span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
     .reply-preview button { background: none; border: none; color: var(--text); cursor: pointer; flex-shrink: 0; display: flex; padding: 4px; }
@@ -366,6 +366,8 @@
       root.style.setProperty('--app-h', vv.height + 'px');
       root.style.setProperty('--app-top', vv.offsetTop + 'px');
       if (currentBookId) {
+        const modal = document.getElementById('modal-content-root');
+        if (modal) modal.style.height = Math.max(vv.height, 400) + 'px';
         const area = document.getElementById('chat-area');
         if (area && document.activeElement && document.activeElement.id === 'chat-input') {
           area.scrollTop = area.scrollHeight;
